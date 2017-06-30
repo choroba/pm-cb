@@ -8,6 +8,8 @@ use Term::ReadKey;
 use XML::LibXML;
 use WWW::Mechanize;
 
+my $debug = '-d' eq shift;
+
 use constant {
     PM_URL => 'http://www.perlmonks.org/bare/?node_id=',
     FREQ   => 7,
@@ -36,6 +38,7 @@ $mech->submit_form(
 
 my %seen;
 my $from_id;
+my $previous;
 
 while (1) {
     my $url = PM_URL . CB;
@@ -59,6 +62,8 @@ while (1) {
         my $id = $message->findvalue('message_id');
         if (exists $seen{$id}) {
             say STDERR colored(['cyan'], "Duplicate message $id");
+            say STDERR colored(['cyan'], $previous, "---\n", $xml)
+                if $debug;
 
         } else {
             say colored(['bold blue'],
@@ -68,5 +73,6 @@ while (1) {
         }
     }
 
+    $previous = $xml;
     sleep FREQ;
 }
