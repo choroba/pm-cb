@@ -3,8 +3,10 @@ use warnings;
 use strict;
 use feature qw{ say };
 
-use WWW::Mechanize;
+use Term::ANSIColor;
+use Term::ReadKey;
 use XML::LibXML;
+use WWW::Mechanize;
 
 use constant {
     PM_URL => 'http://www.perlmonks.org/bare/?node_id=',
@@ -14,10 +16,14 @@ use constant {
     CB    => 207304,
 };
 
+
 print "User? ";
-chomp( my $user = <> );
+chomp( my $user = <STDIN> );
 print "Pass? ";
-chomp( my $pass = <> );
+ReadMode('noecho');
+chomp( my $pass = <STDIN> );
+ReadMode('normal');
+say STDERR '*' x length $pass;
 
 my $mech = 'WWW::Mechanize'->new;
 $mech->get(PM_URL . LOGIN);
@@ -26,9 +32,9 @@ $mech->submit_form(
                    form_number => 1,
                    fields      => { user   => $user,
                                     passwd => $pass,
-                                  },
-                  );
+                                  });
 
+my %seen;
 my $from_id;
 
 while (1) {
@@ -42,14 +48,24 @@ while (1) {
             // $from_id;
 
     my $time = $xml->findvalue('/chatter/info/@gentimeGMT');
-    print STDERR "$time\r";
+    print STDERR colored(['bright_black'], $time), "\r";
 
     my @messages = $xml->findnodes('/chatter/message');
 
+    my $first = 1;
     for my $message (@messages) {
-        print STDERR ' ' x length $time, "\r";
-        say '[', $message->findnodes('author/text()'), '] ',
-            $message->findnodes('text/text()');
+        print "\n" and undef $first if $first;
+
+        my $id = $message->findvalue('message_id');
+        if (exists $seen{$id}) {
+            say STDERR "Duplicate message $id";
+
+        } else {
+            say colored(['bold blue'],
+                        '[', $message->findvalue('author'), '] '),
+                $message->findvalue('text');
+            undef $seen{$id};
+        }
     }
 
     sleep FREQ;
