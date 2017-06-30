@@ -1,0 +1,56 @@
+#!/usr/bin/perl
+use warnings;
+use strict;
+use feature qw{ say };
+
+use WWW::Mechanize;
+use XML::LibXML;
+
+use constant {
+    PM_URL => 'http://www.perlmonks.org/bare/?node_id=',
+    FREQ   => 7,
+    # Node ids:
+    LOGIN => 109,
+    CB    => 207304,
+};
+
+print "User? ";
+chomp( my $user = <> );
+print "Pass? ";
+chomp( my $pass = <> );
+
+my $mech = 'WWW::Mechanize'->new;
+$mech->get(PM_URL . LOGIN);
+
+$mech->submit_form(
+                   form_number => 1,
+                   fields      => { user   => $user,
+                                    passwd => $pass,
+                                  },
+                  );
+
+my $from_id;
+
+while (1) {
+    my $url = PM_URL . CB;
+    $url .= ";fromid=$from_id" if defined $from_id;
+    $mech->get($url);
+
+    my $xml = 'XML::LibXML'->load_xml(string => $mech->content);
+
+    $from_id = $xml->findvalue('/chatter/message[last()]/message_id')
+            // $from_id;
+
+    my $time = $xml->findvalue('/chatter/info/@gentimeGMT');
+    print STDERR "$time\r";
+
+    my @messages = $xml->findnodes('/chatter/message');
+
+    for my $message (@messages) {
+        print STDERR ' ' x length $time, "\r";
+        say '[', $message->findnodes('author/text()'), '] ',
+            $message->findnodes('text/text()');
+    }
+
+    sleep FREQ;
+}
