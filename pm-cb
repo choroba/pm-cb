@@ -58,7 +58,7 @@ while (1) {
 
         my $id = $message->findvalue('message_id');
         if (exists $seen{$id}) {
-            say STDERR "Duplicate message $id";
+            say STDERR colored(['cyan'], "Duplicate message $id");
 
         } else {
             say colored(['bold blue'],
