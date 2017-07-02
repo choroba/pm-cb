@@ -8,7 +8,7 @@ use Term::ReadKey;
 use XML::LibXML;
 use WWW::Mechanize;
 
-my $debug = '-d' eq shift;
+my $debug = @ARGV && '-d' eq shift;
 
 use constant {
     PM_URL => 'http://www.perlmonks.org/bare/?node_id=',
