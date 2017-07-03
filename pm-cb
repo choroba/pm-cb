@@ -47,9 +47,6 @@ while (1) {
 
     my $xml = 'XML::LibXML'->load_xml(string => $mech->content);
 
-    $from_id = $xml->findvalue('/chatter/message[last()]/message_id')
-            // $from_id;
-
     my $time = $xml->findvalue('/chatter/info/@gentimeGMT');
     print STDERR colored(['bright_black'], $time), "\r";
 
@@ -73,6 +70,9 @@ while (1) {
             undef $seen{$id};
         }
     }
+
+    my $new_from_id = $xml->findvalue('/chatter/message[last()]/message_id');
+    $from_id = $new_from_id if length $new_from_id;
 
     $previous = $xml;
     sleep FREQ;
