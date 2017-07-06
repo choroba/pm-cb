@@ -1,0 +1,201 @@
+#!/usr/bin/perl
+use warnings;
+use strict;
+use feature qw{ say };
+
+use threads (stack_size => 2 ** 15);
+use Thread::Queue;
+
+use constant {
+    PM_URL => 'http://www.perlmonks.org/bare/?node_id=',
+    FREQ   => 7,
+    # Node ids:
+    LOGIN => 109,
+    CB    => 207304,
+    SEND  => 227820,
+};
+
+
+my ($readQ, $writeQ) = map 'Thread::Queue'->new, 1, 2;
+
+my $communicate_t = threads->create(\&communicate);
+
+gui();
+
+
+sub communicate {
+    require XML::LibXML;
+    require WWW::Mechanize;
+
+    my $mech = 'WWW::Mechanize'->new;
+
+    my ($from_id, $previous, %seen);
+
+    my $last_update = -1;
+    while (1) {
+        if (my $message = $writeQ->dequeue_nb) {
+            my $command = shift @$message;
+            { login => sub {
+                           login($mech, @$message)
+                               or $readQ->enqueue(['login']);
+                       },
+              send  => sub { send_message($mech, $message->[0]) },
+              quit  => sub { no warnings 'exiting'; last },
+            }->{$command}->();
+        }
+
+        next if time - $last_update < FREQ;
+        $last_update = time;
+
+        my $url = PM_URL . CB;
+        $url .= ";fromid=$from_id" if defined $from_id;
+        $mech->get($url);
+
+        my $xml = 'XML::LibXML'->load_xml(string => $mech->content);
+
+        my $time = $xml->findvalue('/chatter/info/@gentimeGMT');
+        $readQ->enqueue([ time => $time ]);
+
+        my @messages = $xml->findnodes('/chatter/message');
+
+        for my $message (@messages) {
+            my $id = $message->findvalue('message_id');
+            if (! exists $seen{$id}) {
+                $readQ->enqueue([ chat => $message->findvalue('author'),
+                                          $message->findvalue('text') ]);
+                undef $seen{$id};
+            }
+        }
+
+        my $new_from_id = $xml->findvalue(
+            '/chatter/message[last()]/message_id');
+        $from_id = $new_from_id if length $new_from_id;
+
+        $previous = $xml;
+    }
+}
+
+
+sub login {
+    my ($mech, $username, $password) = @_;
+    $mech->get(PM_URL . LOGIN);
+    $mech->submit_form(
+        form_number => 1,
+        fields      => { user   => $username,
+                         passwd => $password,
+    });
+    return $mech->content !~ /^Oops\.  You must have the wrong login/m
+}
+
+
+sub send_message {
+    my ($mech, $message) = @_;
+    return unless length $message;
+
+    $message =~ s/(.)/sprintf '%%%x', ord $1/ge;
+    $mech->post(PM_URL . SEND, Content => "op=message&message=$message");
+    my $content = $mech->content;
+    warn $content unless $content =~ /Chatter accepted/;
+}
+
+sub gui {
+    require Time::Piece;
+    my $tzoffset = Time::Piece::localtime()->tzoffset;
+
+    require Tk;
+    'Tk'->import;
+
+    require Tk::Dialog;
+    require Tk::ROText;
+
+    my $mw = 'MainWindow'->new(-title => 'PM::CB::G');
+
+    my $read_f = $mw->Frame->pack;
+    my $read   = $read_f->ROText->pack;
+    $read->tagConfigure(author => -foreground => 'blue');
+
+    my $last_update_f = $mw->Frame->pack;
+    $read_f->Label(-text => 'Last update:')->pack(-side => 'left');
+    my $last_update = $read_f->Label->pack(-side => 'left');
+
+    my $write_f = $mw->Frame->pack;
+    my $write   = $write_f->Text(-height => 3)->pack;
+    $write->bind('<Enter>', );
+
+    my $button_f = $mw->Frame->pack;
+    my $send_b = $button_f->Button(-text => 'Send',
+                                   -command => sub {
+                                       $writeQ->enqueue(
+                                           [ send => $write->Contents ]);
+                                       $write->Contents(q());
+                                   }
+                                  )->pack(-side => 'left');
+    my $quit_b = $button_f->Button(-text => 'Quit',
+                                   -command => \&quit,
+                                  )->pack(-side => 'left');
+
+    my ($username, $password);
+
+    $mw->repeat(1000, sub {
+        if (my $msg = $readQ->dequeue_nb) {
+            my $type = shift @$msg;
+            { time  => sub {
+                       update_time($last_update, $msg->[0], $tzoffset) },
+              login => sub { login_dialog($mw) },
+              chat  => sub { show_message($read, @$msg) },
+            }->{$type}->();
+        }
+    });
+
+    $mw->after(1, sub { login_dialog($mw) });
+
+    MainLoop();
+}
+
+
+sub show_message {
+    my ($text, $author, $message) = @_;
+    $text->insert(end => "$author: ", ['author']);
+    $text->insert(end => "$message\n");
+}
+
+sub update_time {
+    my ($last_update, $server_time, $tzoffset) = @_;
+    my $local_time = 'Time::Piece'->strptime(
+        $server_time, '%Y-%m-%d %H:%M:%S'
+    ) + $tzoffset;  # Assumption: Server time is in UTC.
+    $last_update->configure(
+        -text => $local_time->strftime('%Y-%m-%d %H:%M:%S'));
+}
+
+
+sub login_dialog {
+    my ($mw) = @_;
+
+    my $login = $mw->Dialog(-title          => 'Login',
+                            -default_button => 'Login',
+                            -buttons        => [qw[ Login Cancel ]]);
+
+    my $username_f = $login->Frame->pack(-fill => 'both');
+    $username_f->Label(-text => 'Username: ')
+        ->pack(-side => 'left', -fill => 'x');
+    my $username_e = $username_f->Entry->pack(-side => 'left');
+
+    my $password_f = $login->Frame->pack(-fill => 'both');
+    $password_f->Label(-text => 'Password: ')
+        ->pack(-side => 'left', -fill => 'x');
+    my $password_e = $password_f->Entry(-show => '*')->pack(-side => 'right');
+
+    my $reply = $login->Show;
+    quit() if 'Cancel' eq $reply;
+
+    $writeQ->enqueue([ 'login', $username_e->get, $password_e->get ]);
+}
+
+
+sub quit {
+    $writeQ->enqueue(['quit']);
+    $communicate_t->join;
+    Tk::exit();
+}
+
