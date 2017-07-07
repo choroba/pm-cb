@@ -201,9 +201,11 @@ sub gui {
 
 
 sub show_message {
+    require Encode;
     my ($text, $author, $message) = @_;
 
-    $message =~ s/&#([0-9]+);/chr $1/ge;
+    $message = Encode::decode('UTF-8', $message);
+    $message =~ s/&#(x?)([0-9]+);/$1 ? chr hex $2 : chr $2/ge;
 
     $text->insert(end => "$author: ", ['author']);
     $text->insert(end => "$message\n");
