@@ -26,6 +26,7 @@ gui();
 sub communicate {
     require XML::LibXML;
     require WWW::Mechanize;
+    require Time::HiRes;
 
     my $mech = 'WWW::Mechanize'->new;
 
@@ -46,6 +47,7 @@ sub communicate {
             $dispatch{$command}->();
         }
 
+        Time::HiRes::usleep(500);
         next if time - $last_update < FREQ;
         $last_update = time;
 
