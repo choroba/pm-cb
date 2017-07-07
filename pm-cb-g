@@ -283,6 +283,7 @@ sub show_private {
     $text->insert(end => "$author: ", ['private']);
     $text->insert(end => " ($time) ");
     $text->insert(end => "$msg\n");
+    $text->see('end');
 }
 
 
