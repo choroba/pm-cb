@@ -6,6 +6,22 @@ use feature qw{ say };
 use threads (stack_size => 2 ** 15);
 use Thread::Queue;
 
+use Getopt::Long;
+
+my ($bgcolor,$fgcolor,$lncolor,$fontname,$charsize) =
+    qw(white black blue Helvetica 16);
+
+unless (GetOptions (
+                     'bgcolor=s' => \$bgcolor,
+                     'fgcolor=s' => \$fgcolor,
+                     'lncolor=s' => \$lncolor,
+                     'fontname=s' => \$fontname,
+                     'charsize|size|c|s=i' => \$charsize,
+
+                    )
+        ) { die "invalid arguments!";}
+
+
 use constant {
     PM_URL => 'http://www.perlmonks.org/bare/?node_id=',
     FREQ   => 7,
@@ -116,17 +132,18 @@ sub gui {
     require Tk::ROText;
 
     my $mw = 'MainWindow'->new(-title => 'PM::CB::G');
+    $mw->optionAdd('*font', $fontname.' '.$charsize);
 
     my $read_f = $mw->Frame->pack;
-    my $read   = $read_f->ROText->pack;
-    $read->tagConfigure(author => -foreground => 'blue');
+    my $read   = $read_f->ROText(-background => $bgcolor, -foreground => $fgcolor)->pack;
+    $read->tagConfigure(author => -foreground => $lncolor);
 
     my $last_update_f = $mw->Frame->pack;
     $read_f->Label(-text => 'Last update:')->pack(-side => 'left');
     my $last_update = $read_f->Label->pack(-side => 'left');
 
     my $write_f = $mw->Frame->pack;
-    my $write   = $write_f->Text(-height => 3)->pack;
+    my $write   = $write_f->Text(-height => 3,-background => $bgcolor, -foreground => $fgcolor)->pack;
     $write->focus('-force');
 
     my $button_f = $mw->Frame->pack;
@@ -213,4 +230,3 @@ sub quit {
     $communicate_t->join;
     Tk::exit();
 }
-
