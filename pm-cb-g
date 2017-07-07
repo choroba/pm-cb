@@ -123,9 +123,9 @@ sub send_message {
                               Content => "op=message&message=$message");
 
     # TODO: Doesn't work.
-    use Data::Dumper; warn Dumper $response
-        unless $response->{_content} =~ /Chatter accepted/;
+    warn qq(TODO: We don't know whether "Chatter accepted" was sent.\n);
 }
+
 
 sub gui {
     require Time::Piece;
@@ -203,6 +203,7 @@ sub show_message {
     $text->insert(end => "$message\n");
     $text->see('end');
 }
+
 
 sub update_time {
     my ($last_update, $server_time, $tzoffset) = @_;
