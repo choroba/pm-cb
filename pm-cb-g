@@ -124,7 +124,7 @@ sub gui {
 
     my $write_f = $mw->Frame->pack;
     my $write   = $write_f->Text(-height => 3)->pack;
-    $write->bind('<Enter>', );
+    $write->focus('-force');
 
     my $button_f = $mw->Frame->pack;
     my $send_b = $button_f->Button(-text => 'Send',
@@ -138,7 +138,9 @@ sub gui {
 
     my $quit_b = $button_f->Button(-text => 'Quit',
                                    -command => \&quit,
+                                   -underline => 0,
                                   )->pack(-side => 'left');
+    $mw->bind('<Alt-q>', sub { $quit_b->invoke });
 
     my ($username, $password);
 
@@ -188,6 +190,7 @@ sub login_dialog {
     $username_f->Label(-text => 'Username: ')
         ->pack(-side => 'left', -fill => 'x');
     my $username_e = $username_f->Entry->pack(-side => 'left');
+    $username_e->focus;
 
     my $password_f = $login->Frame->pack(-fill => 'both');
     $password_f->Label(-text => 'Password: ')
