@@ -138,6 +138,7 @@ sub gui {
     require Tk::ROText;
 
     my $mw = 'MainWindow'->new(-title => 'PM::CB::G');
+    $mw->protocol(WM_DELETE_WINDOW => \&quit);
     $mw->optionAdd('*font', "$font_name $char_size");
 
     my $read_f = $mw->Frame->pack(-expand => 1, -fill => 'both');
