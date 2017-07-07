@@ -6,20 +6,22 @@ use feature qw{ say };
 
 use Getopt::Long qw( :config no_ignore_case );
 
-my ($bg_color, $fg_color, $author_color, $font_name, $char_size,
-    $stack_size);
+my ($bg_color, $fg_color, $author_color, $private_color,
+    $font_name, $char_size, $stack_size);
 
 BEGIN {
-    ($bg_color, $fg_color, $author_color, $font_name, $char_size,
-     $stack_size) = qw( white black blue Helvetica 12 15 );
+    ($bg_color, $fg_color, $author_color, $private_color,
+     $font_name, $char_size, $stack_size)
+        = qw( white black blue magenta Helvetica 12 15 );
 
     die "Invalid arguments!\n" unless GetOptions(
-        'a|author_color=s' => \$author_color,
-        'b|bg_color=s'     => \$bg_color,
-        'c|char_size=i'    => \$char_size,
-        'f|fg_color=s'     => \$fg_color,
-        'F|font_name=s'    => \$font_name,
-        's|stack_size=i'   => \$stack_size,
+        'a|author_color=s'  => \$author_color,
+        'b|bg_color=s'      => \$bg_color,
+        'c|char_size=i'     => \$char_size,
+        'f|fg_color=s'      => \$fg_color,
+        'F|font_name=s'     => \$font_name,
+        'p|private_color=s' => \$private_color,
+        's|stack_size=i'    => \$stack_size,
     );
 }
 
@@ -32,9 +34,10 @@ use constant {
     PM_URL => 'http://www.perlmonks.org/bare/?node_id=',
     FREQ   => 7,
     # Node ids:
-    LOGIN => 109,
-    CB    => 207304,
-    SEND  => 227820,
+    LOGIN   => 109,
+    CB      => 207304,
+    SEND    => 227820,
+    PRIVATE => 15848,
 };
 
 
@@ -63,6 +66,7 @@ sub communicate {
                        send_message($mech, $message->[0]) },
         quit  => sub { no warnings 'exiting'; last },
     );
+
     while (1) {
         if ($message = $writeQ->dequeue_nb) {
             $command = shift @$message;
@@ -98,6 +102,14 @@ sub communicate {
         $from_id = $new_from_id if length $new_from_id;
 
         $previous = $xml;
+
+        my @private = get_all_private($mech, \%seen);
+        for my $msg (@private) {
+            $readQ->enqueue([
+                private => @$msg{qw{ author time text }}
+            ]) unless exists $seen{"p$msg->{id}"};
+            undef $seen{"p$msg->{id}"};
+        }
     }
 }
 
@@ -131,6 +143,40 @@ sub send_message {
 }
 
 
+sub get_all_private {
+    my ($mech, $seen) = @_;
+
+    my $url = PM_URL . PRIVATE;
+
+    my ($max, @private);
+  ALL:
+    while (1) {
+        $mech->get($url);
+        last unless $mech->content =~ /</;
+        my $xml = 'XML::LibXML'->load_xml(string => $mech->content);
+        my @messages;
+        last unless @messages = $xml->findnodes('/CHATTER/message');
+
+        for my $msg (@messages) {
+            my $id = $msg->findvalue('@message_id');
+            last ALL if $seen->{"p$id"};
+
+            push @private, {
+                author => $msg->findvalue('@author'),
+                time   => $msg->findvalue('@time'),
+                text   => $msg->findvalue('text()'),
+                id     => $id,
+            };
+        }
+
+        my $first = $messages[0]->findvalue('@message_id');
+        $url = PM_URL . PRIVATE . "&prior_to=$first";
+    }
+
+    return @private
+}
+
+
 sub gui {
     require Time::Piece;
     my $tzoffset = Time::Piece::localtime()->tzoffset;
@@ -150,7 +196,8 @@ sub gui {
                                  -foreground => $fg_color,
                                  -wrap       => 'word')
         ->pack(-expand => 1, -fill => 'both');
-    $read->tagConfigure(author => -foreground => $author_color);
+    $read->tagConfigure(author  => -foreground => $author_color);
+    $read->tagConfigure(private => -foreground => $private_color);
 
     my $last_update_f = $mw->Frame->pack;
     $read_f->Label(-text => 'Last update:')->pack(-side => 'left');
@@ -184,9 +231,11 @@ sub gui {
     $mw->repeat(1000, sub {
         my $msg;
         my %dispatch = (
-            time  => sub { update_time($last_update, $msg->[0], $tzoffset) },
-            login => sub { login_dialog($mw) },
-            chat  => sub { show_message($read, @$msg) },
+            time    => sub {
+                       update_time($last_update, $msg->[0], $tzoffset) },
+            login   => sub { login_dialog($mw) },
+            chat    => sub { show_message($read, @$msg) },
+            private => sub { show_private($read, @$msg, $tzoffset) },
         );
         while ($msg = $readQ->dequeue_nb) {
             my $type = shift @$msg;
@@ -200,16 +249,40 @@ sub gui {
 }
 
 
+sub decode {
+    my ($msg) = @_;
+    $msg = Encode::decode('UTF-8', $msg);
+    $msg =~ s/&#(x?)([0-9]+);/$1 ? chr hex $2 : chr $2/ge;
+    return $msg
+}
+
+
 sub show_message {
     require Encode;
     my ($text, $author, $message) = @_;
 
-    $message = Encode::decode('UTF-8', $message);
-    $message =~ s/&#(x?)([0-9]+);/$1 ? chr hex $2 : chr $2/ge;
+    $message = decode($message);
 
     $text->insert(end => "$author: ", ['author']);
     $text->insert(end => "$message\n");
     $text->see('end');
+}
+
+
+sub show_private {
+    my ($text, $author, $time, $msg, $tzoffset) = @_;
+    $msg = decode($msg);
+    $msg =~ s/\n//g;
+
+    local $ENV{TZ} = 'America/New_York';
+    my $est = Time::Piece::localtime()->tzoffset;
+    $time = 'Time::Piece'->strptime($time, '%Y-%m-%d %H:%M:%S')
+          - $est + $tzoffset;
+    $time = $time->strftime('%Y-%m-%d %H:%M:%S');
+
+    $text->insert(end => "$author: ", ['private']);
+    $text->insert(end => " ($time) ");
+    $text->insert(end => "$msg\n");
 }
 
 
