@@ -118,9 +118,13 @@ sub send_message {
     my ($mech, $message) = @_;
     return unless length $message;
 
-    $message =~ s/(.)/sprintf '%%%x', ord $1/ge;
-    my $response = $mech->post(PM_URL . SEND,
-                              Content => "op=message&message=$message");
+    ( my $msg = $message )
+        =~ s/(.)/ord $1 > 127 ? '&#' . ord($1) . ';' : $1/ge;
+    my $response = $mech->post(
+        PM_URL . SEND,
+        Content   => { op      => 'message',
+                       message => $msg }
+    );
 
     # TODO: Doesn't work.
     warn qq(TODO: We don't know whether "Chatter accepted" was sent.\n);
@@ -198,6 +202,9 @@ sub gui {
 
 sub show_message {
     my ($text, $author, $message) = @_;
+
+    $message =~ s/&#([0-9]+);/chr $1/ge;
+
     $text->insert(end => "$author: ", ['author']);
     $text->insert(end => "$message\n");
     $text->see('end');
