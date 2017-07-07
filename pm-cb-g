@@ -250,6 +250,7 @@ sub gui {
 
 
 sub decode {
+    require Encode;
     my ($msg) = @_;
     $msg = Encode::decode('UTF-8', $msg);
     $msg =~ s/&#(x?)([0-9]+);/$1 ? chr hex $2 : chr $2/ge;
@@ -258,7 +259,6 @@ sub decode {
 
 
 sub show_message {
-    require Encode;
     my ($text, $author, $message) = @_;
 
     $message = decode($message);
