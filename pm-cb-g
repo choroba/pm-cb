@@ -168,6 +168,7 @@ sub show_message {
     my ($text, $author, $message) = @_;
     $text->insert(end => "$author: ", ['author']);
     $text->insert(end => "$message\n");
+    $text->see('end');
 }
 
 sub update_time {
