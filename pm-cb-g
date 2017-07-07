@@ -142,7 +142,8 @@ sub gui {
 
     my $read_f = $mw->Frame->pack(-expand => 1, -fill => 'both');
     my $read   = $read_f->ROText(-background => $bg_color,
-                                 -foreground => $fg_color)
+                                 -foreground => $fg_color,
+                                 -wrap       => 'word')
         ->pack(-expand => 1, -fill => 'both');
     $read->tagConfigure(author => -foreground => $author_color);
 
@@ -153,7 +154,8 @@ sub gui {
     my $write_f = $mw->Frame->pack(-fill => 'x');
     my $write   = $write_f->Text(-height     => 3,
                                  -background => $bg_color,
-                                 -foreground => $fg_color)
+                                 -foreground => $fg_color,
+                                 -wrap       => 'word')
         ->pack(-fill => 'x');
     $write->focus('-force');
 
