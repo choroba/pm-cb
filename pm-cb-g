@@ -3,8 +3,30 @@ use warnings;
 use strict;
 use feature qw{ say };
 
-use threads (stack_size => 2 ** 15);
+
+use Getopt::Long qw( :config no_ignore_case );
+
+my ($bg_color, $fg_color, $author_color, $font_name, $char_size,
+    $stack_size);
+
+BEGIN {
+    ($bg_color, $fg_color, $author_color, $font_name, $char_size,
+     $stack_size) = qw( white black blue Helvetica 12 15 );
+
+    die "Invalid arguments!\n" unless GetOptions(
+        'a|author_color=s' => \$author_color,
+        'b|bg_color=s'     => \$bg_color,
+        'c|char_size=i'    => \$char_size,
+        'f|fg_color=s'     => \$fg_color,
+        'F|font_name=s'    => \$font_name,
+        's|stack_size=i'   => \$stack_size,
+    );
+}
+
+
+use threads (stack_size => 2 ** $stack_size);
 use Thread::Queue;
+
 
 use constant {
     PM_URL => 'http://www.perlmonks.org/bare/?node_id=',
@@ -116,17 +138,23 @@ sub gui {
     require Tk::ROText;
 
     my $mw = 'MainWindow'->new(-title => 'PM::CB::G');
+    $mw->optionAdd('*font', "$font_name $char_size");
 
     my $read_f = $mw->Frame->pack(-expand => 1, -fill => 'both');
-    my $read   = $read_f->ROText->pack(-expand => 1, -fill => 'both');
-    $read->tagConfigure(author => -foreground => 'blue');
+    my $read   = $read_f->ROText(-background => $bg_color,
+                                 -foreground => $fg_color)
+        ->pack(-expand => 1, -fill => 'both');
+    $read->tagConfigure(author => -foreground => $author_color);
 
     my $last_update_f = $mw->Frame->pack;
     $read_f->Label(-text => 'Last update:')->pack(-side => 'left');
     my $last_update = $read_f->Label->pack(-side => 'left');
 
     my $write_f = $mw->Frame->pack(-fill => 'x');
-    my $write   = $write_f->Text(-height => 3)->pack(-fill => 'x');
+    my $write   = $write_f->Text(-height     => 3,
+                                 -background => $bg_color,
+                                 -foreground => $fg_color)
+        ->pack(-fill => 'x');
     $write->focus('-force');
 
     my $button_f = $mw->Frame->pack;
@@ -213,4 +241,3 @@ sub quit {
     $communicate_t->join;
     Tk::exit();
 }
-
