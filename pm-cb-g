@@ -32,16 +32,17 @@ sub communicate {
     my ($from_id, $previous, %seen);
 
     my $last_update = -1;
+    my ($message, $command);
+    my %dispatch = (
+        login => sub { login($mech, @$message)
+                           or $readQ->enqueue(['login']) },
+        send  => sub { send_message($mech, $message->[0]) },
+        quit  => sub { no warnings 'exiting'; last },
+    );
     while (1) {
-        if (my $message = $writeQ->dequeue_nb) {
-            my $command = shift @$message;
-            { login => sub {
-                           login($mech, @$message)
-                               or $readQ->enqueue(['login']);
-                       },
-              send  => sub { send_message($mech, $message->[0]) },
-              quit  => sub { no warnings 'exiting'; last },
-            }->{$command}->();
+        if ($message = $writeQ->dequeue_nb) {
+            $command = shift @$message;
+            $dispatch{$command}->();
         }
 
         next if time - $last_update < FREQ;
@@ -137,13 +138,15 @@ sub gui {
     my ($username, $password);
 
     $mw->repeat(1000, sub {
-        if (my $msg = $readQ->dequeue_nb) {
+        my $msg;
+        my %dispatch = (
+            time  => sub { update_time($last_update, $msg->[0], $tzoffset) },
+            login => sub { login_dialog($mw) },
+            chat  => sub { show_message($read, @$msg) },
+        );
+        while ($msg = $readQ->dequeue_nb) {
             my $type = shift @$msg;
-            { time  => sub {
-                       update_time($last_update, $msg->[0], $tzoffset) },
-              login => sub { login_dialog($mw) },
-              chat  => sub { show_message($read, @$msg) },
-            }->{$type}->();
+            $dispatch{$type}->();
         }
     });
 
