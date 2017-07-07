@@ -117,16 +117,16 @@ sub gui {
 
     my $mw = 'MainWindow'->new(-title => 'PM::CB::G');
 
-    my $read_f = $mw->Frame->pack;
-    my $read   = $read_f->ROText->pack;
+    my $read_f = $mw->Frame->pack(-expand => 1, -fill => 'both');
+    my $read   = $read_f->ROText->pack(-expand => 1, -fill => 'both');
     $read->tagConfigure(author => -foreground => 'blue');
 
     my $last_update_f = $mw->Frame->pack;
     $read_f->Label(-text => 'Last update:')->pack(-side => 'left');
     my $last_update = $read_f->Label->pack(-side => 'left');
 
-    my $write_f = $mw->Frame->pack;
-    my $write   = $write_f->Text(-height => 3)->pack;
+    my $write_f = $mw->Frame->pack(-fill => 'x');
+    my $write   = $write_f->Text(-height => 3)->pack(-fill => 'x');
     $write->focus('-force');
 
     my $button_f = $mw->Frame->pack;
