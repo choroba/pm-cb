@@ -94,9 +94,12 @@ sub send_message {
     return unless length $message;
 
     $message =~ s/(.)/sprintf '%%%x', ord $1/ge;
-    $mech->post(PM_URL . SEND, Content => "op=message&message=$message");
-    my $content = $mech->content;
-    warn $content unless $content =~ /Chatter accepted/;
+    my $response = $mech->post(PM_URL . SEND,
+                              Content => "op=message&message=$message");
+
+    # TODO: Doesn't work.
+    use Data::Dumper; warn Dumper $response
+        unless $response->{_content} =~ /Chatter accepted/;
 }
 
 sub gui {
