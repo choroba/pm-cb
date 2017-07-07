@@ -69,7 +69,7 @@ sub communicate {
             $dispatch{$command}->();
         }
 
-        Time::HiRes::usleep(500);
+        Time::HiRes::usleep(250_000);
         next if time - $last_update < FREQ;
         $last_update = time;
 
