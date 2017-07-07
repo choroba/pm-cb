@@ -158,7 +158,6 @@ sub gui {
                                  -foreground => $fg_color,
                                  -wrap       => 'word')
         ->pack(-fill => 'x');
-    $write->focus('-force');
 
     my $button_f = $mw->Frame->pack;
     my $send_b = $button_f->Button(-text => 'Send',
@@ -191,7 +190,7 @@ sub gui {
         }
     });
 
-    $mw->after(1, sub { login_dialog($mw) });
+    $mw->after(1, sub { login_dialog($mw); $write->focus; });
 
     MainLoop();
 }
