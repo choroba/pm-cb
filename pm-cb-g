@@ -131,6 +131,8 @@ sub gui {
                                        $write->Contents(q());
                                    }
                                   )->pack(-side => 'left');
+    $mw->bind("<$_>", sub { $send_b->invoke }) for qw( Return KP_Enter );
+
     my $quit_b = $button_f->Button(-text => 'Quit',
                                    -command => \&quit,
                                   )->pack(-side => 'left');
