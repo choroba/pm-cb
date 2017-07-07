@@ -37,7 +37,7 @@ sub communicate {
     my %dispatch = (
         login => sub { login($mech, @$message)
                            or $readQ->enqueue(['login']) },
-        send  => sub { chomp $message->[0];
+        send  => sub { $message->[0] =~ tr/\x00-\x20/ /s;
                        send_message($mech, $message->[0]) },
         quit  => sub { no warnings 'exiting'; last },
     );
