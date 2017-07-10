@@ -135,11 +135,12 @@ sub send_message {
     my $response = $mech->post(
         PM_URL . SEND,
         Content   => { op      => 'message',
+                       node    => SEND,
                        message => $msg }
     );
-
-    # TODO: Doesn't work.
-    warn qq(TODO: We don't know whether "Chatter accepted" was sent.\n);
+    my $content = $response->content;
+    $readQ->enqueue([ private => '<pm-cb-g>', undef, $content ])
+        unless $content =~ /^Chatter accepted/;
 }
 
 
@@ -274,10 +275,14 @@ sub show_private {
     $msg = decode($msg);
     $msg =~ s/\n//g;
 
-    local $ENV{TZ} = 'America/New_York';
-    my $est = Time::Piece::localtime()->tzoffset;
-    $time = 'Time::Piece'->strptime($time, '%Y-%m-%d %H:%M:%S')
-          - $est + $tzoffset;
+    if (defined $time) {
+        local $ENV{TZ} = 'America/New_York';
+        my $est = Time::Piece::localtime()->tzoffset;
+        $time = 'Time::Piece'->strptime($time, '%Y-%m-%d %H:%M:%S')
+              - $est + $tzoffset;
+    } else {
+        $time = Time::Piece::localtime();
+    }
     $time = $time->strftime('%Y-%m-%d %H:%M:%S');
 
     $text->insert(end => "$author: ", ['private']);
