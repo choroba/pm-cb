@@ -3,6 +3,7 @@ use warnings;
 use strict;
 use feature qw{ say };
 
+# modified by me 12072017
 
 use Getopt::Long qw( :config no_ignore_case );
 
@@ -26,16 +27,12 @@ BEGIN {
     );
 }
 
-if ($mce){
-   use MCE::Hobo;
-   use MCE::Shared;
-   print "Experimental: MCE::Hobo and MCE::Shared instead of threads and Thread::Queue\n";
+use if $mce => 'MCE::Hobo';
+use if $mce => 'MCE::Shared';
 
-}
-else {
-  use threads (stack_size => 2 ** $stack_size);
-  use Thread::Queue;
-}
+use if !$mce => 'threads' => (stack_size => 2 ** $stack_size);
+use if !$mce => 'Thread::Queue';
+
 
 
 use constant {
