@@ -7,12 +7,12 @@ use feature qw{ say };
 use Getopt::Long qw( :config no_ignore_case );
 
 my ($bg_color, $fg_color, $author_color, $private_color,
-    $font_name, $char_size, $stack_size);
+    $font_name, $char_size, $stack_size, $mce);
 
 BEGIN {
     ($bg_color, $fg_color, $author_color, $private_color,
-     $font_name, $char_size, $stack_size)
-        = qw( white black blue magenta Helvetica 12 15 );
+     $font_name, $char_size, $stack_size, $mce)
+        = qw( white black blue magenta Helvetica 12 15 0);
 
     die "Invalid arguments!\n" unless GetOptions(
         'a|author_color=s'  => \$author_color,
@@ -20,14 +20,25 @@ BEGIN {
         'c|char_size=i'     => \$char_size,
         'f|fg_color=s'      => \$fg_color,
         'F|font_name=s'     => \$font_name,
+        'm|mce'             => \$mce,
         'p|private_color=s' => \$private_color,
         's|stack_size=i'    => \$stack_size,
     );
 }
 
 
-use threads (stack_size => 2 ** $stack_size);
-use Thread::Queue;
+use if $mce => 'MCE::Hobo';
+use if $mce => 'MCE::Shared';
+
+use if ! $mce => threads => (stack_size => 2 ** $stack_size);
+use if ! $mce => 'Thread::Queue';
+
+my ($queue_class, $queue_constructor, $worker_class)
+    = $mce ? ('MCE::Shared',   'queue', 'MCE::Hobo')
+           : ('Thread::Queue', 'new',   'threads');
+
+my ($readQ, $writeQ) = map $queue_class->$queue_constructor, 1, 2;
+my $communicate_t = $worker_class->create(\&communicate);
 
 
 use constant {
@@ -40,10 +51,6 @@ use constant {
     PRIVATE => 15848,
 };
 
-
-my ($readQ, $writeQ) = map 'Thread::Queue'->new, 1, 2;
-
-my $communicate_t = threads->create(\&communicate);
 
 gui();
 
