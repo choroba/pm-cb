@@ -7,12 +7,12 @@ use feature qw{ say };
 use Getopt::Long qw( :config no_ignore_case );
 
 my ($bg_color, $fg_color, $author_color, $private_color,
-    $font_name, $char_size, $stack_size, $mce);
+    $font_name, $char_size, $stack_size, $seen_color, $mce);
 
 BEGIN {
-    ($bg_color, $fg_color, $author_color, $private_color,
+    ($bg_color, $fg_color, $author_color, $private_color, $seen_color,
      $font_name, $char_size, $stack_size, $mce)
-        = qw( white black blue magenta Helvetica 12 15 0);
+        = qw( white black blue magenta gray Helvetica 12 15 0);
 
     die "Invalid arguments!\n" unless GetOptions(
         'a|author_color=s'  => \$author_color,
@@ -23,6 +23,7 @@ BEGIN {
         'm|mce'             => \$mce,
         'p|private_color=s' => \$private_color,
         's|stack_size=i'    => \$stack_size,
+        'S|seen_color=s'    => \$seen_color,
     );
 }
 
@@ -206,6 +207,7 @@ sub gui {
         ->pack(-expand => 1, -fill => 'both');
     $read->tagConfigure(author  => -foreground => $author_color);
     $read->tagConfigure(private => -foreground => $private_color);
+    $read->tagConfigure(seen    => -foreground => $seen_color);
 
     my $last_update_f = $mw->Frame->pack;
     $read_f->Label(-text => 'Last update:')->pack(-side => 'left');
@@ -229,6 +231,12 @@ sub gui {
     $mw->bind("<$_>", sub { $write->delete('insert - 1 char');
                             $send_b->invoke }
     ) for qw( Return KP_Enter );
+
+    my $seen_b = $button_f->Button(-text => 'Seen',
+                                   -command => sub { seen($read) },
+                                   -underline => 0,
+                                  )->pack(-side => 'left');
+    $mw->bind('<Alt-s>', sub { $seen_b->invoke });
 
     my $quit_b = $button_f->Button(-text => 'Quit',
                                    -command => \&quit,
@@ -259,6 +267,15 @@ sub gui {
 }
 
 
+sub seen {
+    my ($read) = @_;
+    while (my ($from, $to) = $read->tagNextrange('unseen', '1.0')) {
+        $read->tagRemove('unseen', $from, $to);
+        $read->tagAdd('seen', $from, $to);
+    }
+}
+
+
 sub decode {
     require Encode;
     my ($msg) = @_;
@@ -274,7 +291,7 @@ sub show_message {
     $message = decode($message);
 
     $text->insert(end => "$author: ", ['author']);
-    $text->insert(end => "$message\n");
+    $text->insert(end => "$message\n", ['unseen']);
     $text->see('end');
 }
 
@@ -296,7 +313,7 @@ sub show_private {
 
     $text->insert(end => "$author: ", ['private']);
     $text->insert(end => " ($time) ");
-    $text->insert(end => "$msg\n");
+    $text->insert(end => "$msg\n", ['unseen']);
     $text->see('end');
 }
 
