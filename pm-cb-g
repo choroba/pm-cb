@@ -282,7 +282,7 @@ sub show_message {
 sub show_private {
     my ($text, $author, $time, $msg, $tzoffset) = @_;
     $msg = decode($msg);
-    $msg =~ s/\n//g;
+    $msg =~ s/[\n\r]//g;
 
     if (defined $time) {
         local $ENV{TZ} = 'America/New_York';
