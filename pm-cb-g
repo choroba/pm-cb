@@ -226,7 +226,9 @@ sub gui {
                                        $write->Contents(q());
                                    }
                                   )->pack(-side => 'left');
-    $mw->bind("<$_>", sub { $send_b->invoke }) for qw( Return KP_Enter );
+    $mw->bind("<$_>", sub { $write->delete('insert - 1 char');
+                            $send_b->invoke }
+    ) for qw( Return KP_Enter );
 
     my $quit_b = $button_f->Button(-text => 'Quit',
                                    -command => \&quit,
