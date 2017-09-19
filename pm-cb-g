@@ -6,13 +6,13 @@ use feature qw{ say };
 
 use Getopt::Long qw( :config no_ignore_case );
 
-my ($bg_color, $fg_color, $author_color, $private_color,
+my ($bg_color, $fg_color, $author_color, $private_color, $time_color,
     $font_name, $char_size, $stack_size, $seen_color, $mce);
 
 BEGIN {
-    ($bg_color, $fg_color, $author_color, $private_color, $seen_color,
-     $font_name, $char_size, $stack_size, $mce)
-        = qw( white black blue magenta gray Helvetica 12 15 0);
+    ($bg_color, $fg_color, $author_color, $private_color, $time_color,
+     $seen_color, $font_name, $char_size, $stack_size, $mce)
+        = qw( white black blue magenta darkcyan darkgray Helvetica 12 15 0);
 
     die "Invalid arguments!\n" unless GetOptions(
         'a|author_color=s'  => \$author_color,
@@ -24,6 +24,7 @@ BEGIN {
         'p|private_color=s' => \$private_color,
         's|stack_size=i'    => \$stack_size,
         'S|seen_color=s'    => \$seen_color,
+        't|time_color=s'    => \$time_color,
     );
 }
 
@@ -99,7 +100,8 @@ sub communicate {
         for my $message (@messages) {
             my $id = $message->findvalue('message_id');
             if (! exists $seen{$id}) {
-                $readQ->enqueue([ chat => $message->findvalue('author'),
+                $readQ->enqueue([ chat => $time,
+                                          $message->findvalue('author'),
                                           $message->findvalue('text') ]);
                 undef $seen{$id};
             }
@@ -189,6 +191,7 @@ sub get_all_private {
 sub gui {
     require Time::Piece;
     my $tzoffset = Time::Piece::localtime()->tzoffset;
+    my $last_date = q();
 
     require Tk;
     'Tk'->import;
@@ -208,6 +211,7 @@ sub gui {
     $read->tagConfigure(author  => -foreground => $author_color);
     $read->tagConfigure(private => -foreground => $private_color);
     $read->tagConfigure(seen    => -foreground => $seen_color);
+    $read->tagConfigure(time    => -foreground => $time_color);
 
     my $last_update_f = $mw->Frame->pack;
     $read_f->Label(-text => 'Last update:')->pack(-side => 'left');
@@ -249,10 +253,10 @@ sub gui {
     $mw->repeat(1000, sub {
         my $msg;
         my %dispatch = (
-            time    => sub {
-                       update_time($last_update, $msg->[0], $tzoffset) },
+            time    => sub { update_time($last_update, $msg->[0], $tzoffset,
+                                         \$last_date) },
             login   => sub { login_dialog($mw) },
-            chat    => sub { show_message($read, @$msg) },
+            chat    => sub { show_message($read, $last_date, @$msg) },
             private => sub { show_private($read, @$msg, $tzoffset) },
         );
         while ($msg = $readQ->dequeue_nb) {
@@ -290,11 +294,13 @@ sub decode {
 
 
 sub show_message {
-    my ($text, $author, $message) = @_;
+    my ($text, $last_date, $timestamp, $author, $message) = @_;
 
     $message = decode($message);
 
-    $text->insert(end => "$author: ", ['author']);
+    substr $timestamp, 0, 11, q() if 0 == index $timestamp, $last_date;
+    $text->insert(end => "<$timestamp>", ['time']);
+    $text->insert(end => " [$author]: ", ['author']);
     $text->insert(end => "$message\n", ['unseen']);
     $text->see('end');
 }
@@ -315,20 +321,21 @@ sub show_private {
     }
     $time = $time->strftime('%Y-%m-%d %H:%M:%S');
 
-    $text->insert(end => "$author: ", ['private']);
-    $text->insert(end => " ($time) ");
+    $text->insert(end => "<$time>", ['time']);
+    $text->insert(end => " [$author]: ", ['private']);
     $text->insert(end => "$msg\n", ['unseen']);
     $text->see('end');
 }
 
 
 sub update_time {
-    my ($last_update, $server_time, $tzoffset) = @_;
+    my ($last_update, $server_time, $tzoffset, $last_date) = @_;
     my $local_time = 'Time::Piece'->strptime(
         $server_time, '%Y-%m-%d %H:%M:%S'
     ) + $tzoffset;  # Assumption: Server time is in UTC.
     $last_update->configure(
         -text => $local_time->strftime('%Y-%m-%d %H:%M:%S'));
+    $$last_date = $local_time->strftime('%Y-%m-%d');
 }
 
 
