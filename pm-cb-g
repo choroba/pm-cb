@@ -256,7 +256,7 @@ sub gui {
             time    => sub { update_time($last_update, $msg->[0], $tzoffset,
                                          \$last_date) },
             login   => sub { login_dialog($mw) },
-            chat    => sub { show_message($read, $last_date, @$msg) },
+            chat    => sub { show_message($read, $last_date, $tzoffset, @$msg) },
             private => sub { show_private($read, @$msg, $tzoffset) },
         );
         while ($msg = $readQ->dequeue_nb) {
@@ -294,9 +294,11 @@ sub decode {
 
 
 sub show_message {
-    my ($text, $last_date, $timestamp, $author, $message) = @_;
+    my ($text, $last_date, $tzoffset, $timestamp, $author, $message) = @_;
 
     $message = decode($message);
+    $timestamp = convert_time($timestamp, $tzoffset)
+                 ->strftime('%Y-%m-%d %H:%M:%S');
 
     substr $timestamp, 0, 11, q() if 0 == index $timestamp, $last_date;
     $text->insert(end => "<$timestamp>", ['time']);
@@ -328,11 +330,17 @@ sub show_private {
 }
 
 
-sub update_time {
-    my ($last_update, $server_time, $tzoffset, $last_date) = @_;
+sub convert_time {
+    my ($server_time, $tzoffset) = @_;
     my $local_time = 'Time::Piece'->strptime(
         $server_time, '%Y-%m-%d %H:%M:%S'
     ) + $tzoffset;  # Assumption: Server time is in UTC.
+    return $local_time
+}
+
+sub update_time {
+    my ($last_update, $server_time, $tzoffset, $last_date) = @_;
+    my $local_time = convert_time($server_time, $tzoffset);
     $last_update->configure(
         -text => $local_time->strftime('%Y-%m-%d %H:%M:%S'));
     $$last_date = $local_time->strftime('%Y-%m-%d');
