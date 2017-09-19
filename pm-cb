@@ -21,8 +21,8 @@ use constant {
 
 print "User? ";
 chomp( my $user = <STDIN> );
-print "Pass? ";
 ReadMode('noecho');
+print "Pass? ";
 chomp( my $pass = <STDIN> );
 ReadMode('normal');
 say STDERR '*' x length $pass;
