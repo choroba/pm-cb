@@ -278,9 +278,13 @@ sub seen {
 
 sub decode {
     require Encode;
+    require charnames;
     my ($msg) = @_;
     $msg = Encode::decode('UTF-8', $msg);
     $msg =~ s/&#(x?)([0-9]+);/$1 ? chr hex $2 : chr $2/ge;
+    $msg =~ s/([\x{FFFF}-\x{FFFFFFFF}])/
+              "\x{2997}" . charnames::viacode(ord $1) . "\x{2998}"/ge
+        if 'MSWin32' eq $^O;
     return $msg
 }
 
