@@ -53,6 +53,7 @@ use constant {
     PRIVATE => 15848,
 };
 
+use constant TITLE => 'PM::CB::G';
 
 gui();
 
@@ -199,7 +200,7 @@ sub gui {
     require Tk::Dialog;
     require Tk::ROText;
 
-    my $mw = 'MainWindow'->new(-title => 'PM::CB::G');
+    my $mw = 'MainWindow'->new(-title => TITLE);
     $mw->protocol(WM_DELETE_WINDOW => \&quit);
     $mw->optionAdd('*font', "$font_name $char_size");
 
@@ -237,7 +238,7 @@ sub gui {
     ) for qw( Return KP_Enter );
 
     my $seen_b = $button_f->Button(-text => 'Seen',
-                                   -command => sub { seen($read) },
+                                   -command => sub { seen($read, $mw) },
                                    -underline => 0,
                                   )->pack(-side => 'left');
     $mw->bind('<Alt-s>', sub { $seen_b->invoke });
@@ -256,8 +257,10 @@ sub gui {
             time    => sub { update_time($last_update, $msg->[0], $tzoffset,
                                          \$last_date) },
             login   => sub { login_dialog($mw) },
-            chat    => sub { show_message($read, $last_date, $tzoffset, @$msg) },
-            private => sub { show_private($read, @$msg, $tzoffset) },
+            chat    => sub { show_message($read, $last_date, $tzoffset, @$msg);
+                             increment_unread($mw); },
+            private => sub { show_private($read, @$msg, $tzoffset);
+                             increment_unread($mw); },
         );
         while ($msg = $readQ->dequeue_nb) {
             my $type = shift @$msg;
@@ -271,12 +274,24 @@ sub gui {
 }
 
 
+sub increment_unread {
+    my ($mw) = @_;
+    my $title = $mw->cget('-title');
+    if ($title =~ s/([0-9]+)/$1 + 1/e) {
+        $mw->configure(-title => $title);
+    } else {
+        $mw->configure(-title => '[1] ' . TITLE);
+    }
+}
+
+
 sub seen {
-    my ($read) = @_;
+    my ($read, $mw) = @_;
     while (my ($from, $to) = $read->tagNextrange('unseen', '1.0')) {
         $read->tagRemove('unseen', $from, $to);
         $read->tagAdd('seen', $from, $to);
     }
+    $mw->configure(-title => TITLE);
 }
 
 
