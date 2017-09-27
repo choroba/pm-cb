@@ -35,9 +35,10 @@ use if $mce => 'MCE::Shared';
 use if ! $mce => threads => (stack_size => 2 ** $stack_size);
 use if ! $mce => 'Thread::Queue';
 
-my ($queue_class, $queue_constructor, $worker_class)
-    = $mce ? ('MCE::Shared',   'queue', 'MCE::Hobo')
-           : ('Thread::Queue', 'new',   'threads');
+my ($queue_class, $queue_constructor, $worker_class, $running)
+    = $mce
+    ? ('MCE::Shared',   'queue', 'MCE::Hobo', sub { $_[0]->list_running} )
+    : ('Thread::Queue', 'new',   'threads',   sub { $_[0]->list(threads::running)} );
 
 my ($readQ, $writeQ) = map $queue_class->$queue_constructor, 1, 2;
 my $communicate_t = $worker_class->create(\&communicate);
@@ -121,6 +122,17 @@ sub communicate {
             ]) unless exists $seen{"p$msg->{id}"};
             undef $seen{"p$msg->{id}"};
         }
+    }
+}
+
+
+sub heartbeat {
+    my $ok = $worker_class->$running;
+    unless ($ok) {
+        warn "Restarting worker...\n";
+        eval { $communicate_t->join };
+        $communicate_t = $worker_class->create(\&communicate);
+        send_login();
     }
 }
 
@@ -268,6 +280,8 @@ sub gui {
         }
     });
 
+    $mw->repeat(5000, \&heartbeat);
+
     $mw->after(1, sub { login_dialog($mw); $write->focus; });
 
     MainLoop();
@@ -362,30 +376,36 @@ sub update_time {
 }
 
 
-sub login_dialog {
-    my ($mw) = @_;
+{   my ($login, $password);
+    sub send_login {
+        $writeQ->enqueue([ 'login', $login, $password ]);
+    }
 
-    my $login = $mw->Dialog(-title          => 'Login',
-                            -default_button => 'Login',
-                            -buttons        => [qw[ Login Cancel ]]);
+    sub login_dialog {
+        my ($mw) = @_;
 
-    my $username_f = $login->Frame->pack(-fill => 'both');
-    $username_f->Label(-text => 'Username: ')
-        ->pack(-side => 'left', -fill => 'x');
-    my $username_e = $username_f->Entry->pack(-side => 'left');
-    $username_e->focus;
+        my $dialog = $mw->Dialog(-title          => 'Login',
+                                 -default_button => 'Login',
+                                 -buttons        => [qw[ Login Cancel ]]);
 
-    my $password_f = $login->Frame->pack(-fill => 'both');
-    $password_f->Label(-text => 'Password: ')
-        ->pack(-side => 'left', -fill => 'x');
-    my $password_e = $password_f->Entry(-show => '*')->pack(-side => 'right');
+        my $username_f = $dialog->Frame->pack(-fill => 'both');
+        $username_f->Label(-text => 'Username: ')
+            ->pack(-side => 'left', -fill => 'x');
+        my $username_e = $username_f->Entry->pack(-side => 'left');
+        $username_e->focus;
 
-    my $reply = $login->Show;
-    quit() if 'Cancel' eq $reply;
+        my $password_f = $dialog->Frame->pack(-fill => 'both');
+        $password_f->Label(-text => 'Password: ')
+            ->pack(-side => 'left', -fill => 'x');
+        my $password_e = $password_f->Entry(-show => '*')->pack(-side => 'right');
 
-    $writeQ->enqueue([ 'login', $username_e->get, $password_e->get ]);
+        my $reply = $dialog->Show;
+        quit() if 'Cancel' eq $reply;
+
+        ($login, $password) = ($username_e->get, $password_e->get);
+        send_login();
+    }
 }
-
 
 sub quit {
     $writeQ->enqueue(['quit']);
