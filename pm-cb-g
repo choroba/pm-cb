@@ -353,6 +353,16 @@ sub decode {
 }
 
 
+sub show {
+    my ($text, $timestamp, $author, $message, $private) = @_;
+    $text->insert(end => "<$timestamp>", ['time']);
+    $text->insert(end => " [$author]: ",
+                  [ $private ? 'private' : 'author']);
+    $text->insert(end => "$message\n", ['unseen']);
+    $text->see('end');
+}
+
+
 sub show_message {
     my ($text, $last_date, $tzoffset, $timestamp, $author, $message) = @_;
 
@@ -361,10 +371,7 @@ sub show_message {
                  ->strftime('%Y-%m-%d %H:%M:%S');
 
     substr $timestamp, 0, 11, q() if 0 == index $timestamp, $last_date;
-    $text->insert(end => "<$timestamp>", ['time']);
-    $text->insert(end => " [$author]: ", ['author']);
-    $text->insert(end => "$message\n", ['unseen']);
-    $text->see('end');
+    show($text, $timestamp, $author, $message, 0);
 }
 
 
@@ -383,10 +390,7 @@ sub show_private {
     }
     $time = $time->strftime('%Y-%m-%d %H:%M:%S');
 
-    $text->insert(end => "<$time>", ['time']);
-    $text->insert(end => " [$author]: ", ['private']);
-    $text->insert(end => "$msg\n", ['unseen']);
-    $text->see('end');
+    show($text, $time, $author, $msg, 1);
 }
 
 
