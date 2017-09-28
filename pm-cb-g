@@ -7,16 +7,23 @@ use feature qw{ say };
 use Getopt::Long qw( :config no_ignore_case );
 
 my ($bg_color, $fg_color, $author_color, $private_color, $time_color,
-    $font_name, $char_size, $stack_size, $seen_color, $mce);
+    $font_name, $char_size, $stack_size, $seen_color, $mce, $browser);
 
 BEGIN {
     ($bg_color, $fg_color, $author_color, $private_color, $time_color,
      $seen_color, $font_name, $char_size, $stack_size, $mce)
-        = qw( white black blue magenta darkcyan darkgray Helvetica 12 15 0);
+        = qw( white black blue magenta darkcyan darkgray Helvetica 12 15 0 );
+    $browser = {
+        darwin  => 'open',
+        MSWin32 => 'start',
+        msys    => 'start',
+        cygwin  => 'cygstart',
+    }->{$^O} || 'xdg-open';
 
     die "Invalid arguments!\n" unless GetOptions(
         'a|author_color=s'  => \$author_color,
         'b|bg_color=s'      => \$bg_color,
+        'B|browser=s'       => \$browser,
         'c|char_size=i'     => \$char_size,
         'f|fg_color=s'      => \$fg_color,
         'F|font_name=s'     => \$font_name,
@@ -46,6 +53,7 @@ my $communicate_t = $worker_class->create(\&communicate);
 
 use constant {
     PM_URL => 'http://www.perlmonks.org/bare/?node_id=',
+    PM_BROWSE_URL => 'http://www.perlmonks.org/?node_id=',
     FREQ   => 7,
     # Node ids:
     LOGIN   => 109,
@@ -358,8 +366,31 @@ sub show {
     $text->insert(end => "<$timestamp>", ['time']);
     $text->insert(end => " [$author]: ",
                   [ $private ? 'private' : 'author']);
+
+    my ($line, $column) = split /\./, $text->index('end');
+    $column += 2 + length($timestamp) + 5 + length $author;
     $text->insert(end => "$message\n", ['unseen']);
+
+    while ($message =~ m{(\[id://([0-9]+)\])}g) {
+        my ($string, $id) = ($1, $2);
+        my $url = PM_BROWSE_URL . $id;
+        my $tag = "browse:" . $url;
+        $text->tagConfigure($tag => -background => 'yellow');
+        $text->tagAdd(
+            $tag,
+            ($line - 1) . '.' . ($column + pos($message) - length $string),
+            ($line - 1) . '.' . ($column + pos $message));
+        $text->tagBind($tag, '<Button-1>', sub { browse($url) });
+    }
+
     $text->see('end');
+}
+
+
+sub browse {
+    my ($url) = @_;
+    require Proc::Background;
+    'Proc::Background'->new($browser, $url);
 }
 
 
