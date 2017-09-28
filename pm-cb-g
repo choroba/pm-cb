@@ -305,6 +305,8 @@ sub gui {
 sub save {
     my ($mw, $contents) = @_;
     my $file = $mw->getSaveFile(-title => 'Save the history to a file');
+    return unless defined $file;
+
     if (open my $OUT, '>', $file) {
         print {$OUT} $contents;
     } else {
