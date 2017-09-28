@@ -262,6 +262,13 @@ sub gui {
                                   )->pack(-side => 'left');
     $mw->bind('<Alt-s>', sub { $seen_b->invoke });
 
+    my $save_b = $button_f->Button(
+        -text => 'Save',
+        -command => sub { save($mw, $read->Contents) },
+        -underline => 1
+    )->pack(-side => 'left');
+    $mw->bind('<Alt-a>', sub { $save_b->invoke });
+
     my $quit_b = $button_f->Button(-text => 'Quit',
                                    -command => \&quit,
                                    -underline => 0,
@@ -292,6 +299,21 @@ sub gui {
     $mw->after(1, sub { login_dialog($mw); $write->focus; });
 
     MainLoop();
+}
+
+
+sub save {
+    my ($mw, $contents) = @_;
+    my $file = $mw->getSaveFile(-title => 'Save the history to a file');
+    if (open my $OUT, '>', $file) {
+        print {$OUT} $contents;
+    } else {
+        $mw->messageBox(-title => "Can't save",
+                        -icon  => 'error',
+                        -message => "'$file' can't be opened for writing",
+                        -type => 'Ok'
+        );
+    }
 }
 
 
