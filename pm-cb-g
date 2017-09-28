@@ -411,7 +411,7 @@ sub show {
         my $url = PM_BROWSE_URL . $id;
         ask_title($url);
         my $tag = "browse:" . $url;
-        $text->tagConfigure($tag => -background => 'yellow');
+        $text->tagConfigure($tag => -underline => 1);
         $text->tagAdd(
             $tag,
             ($line - 1) . '.' . ($column + pos($message) - length $string),
