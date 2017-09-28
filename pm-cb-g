@@ -92,28 +92,33 @@ sub communicate {
         $url .= ";fromid=$from_id" if defined $from_id;
         $mech->get($url);
 
-        my $xml = 'XML::LibXML'->load_xml(string => $mech->content);
+        my $xml;
+        if (eval {
+            $xml = 'XML::LibXML'->load_xml(string => $mech->content);
+        }) {
 
-        my $time = $xml->findvalue('/chatter/info/@gentimeGMT');
-        $readQ->enqueue([ time => $time ]);
+            my $time = $xml->findvalue('/chatter/info/@gentimeGMT');
+            $readQ->enqueue([ time => $time ]);
 
-        my @messages = $xml->findnodes('/chatter/message');
+            my @messages = $xml->findnodes('/chatter/message');
 
-        for my $message (@messages) {
-            my $id = $message->findvalue('message_id');
-            if (! exists $seen{$id}) {
-                $readQ->enqueue([ chat => $time,
-                                          $message->findvalue('author'),
-                                          $message->findvalue('text') ]);
-                undef $seen{$id};
+            for my $message (@messages) {
+                my $id = $message->findvalue('message_id');
+                if (! exists $seen{$id}) {
+                    $readQ->enqueue([
+                        chat => $time,
+                                $message->findvalue('author'),
+                                $message->findvalue('text') ]);
+                    undef $seen{$id};
+                }
             }
+
+            my $new_from_id = $xml->findvalue(
+                '/chatter/message[last()]/message_id');
+            $from_id = $new_from_id if length $new_from_id;
+
+            $previous = $xml;
         }
-
-        my $new_from_id = $xml->findvalue(
-            '/chatter/message[last()]/message_id');
-        $from_id = $new_from_id if length $new_from_id;
-
-        $previous = $xml;
 
         my @private = get_all_private($mech, \%seen);
         for my $msg (@private) {
@@ -177,7 +182,9 @@ sub get_all_private {
     while (1) {
         $mech->get($url);
         last unless $mech->content =~ /</;
-        my $xml = 'XML::LibXML'->load_xml(string => $mech->content);
+        my $xml;
+        eval { $xml = 'XML::LibXML'->load_xml(string => $mech->content) }
+            or last;
         my @messages;
         last unless @messages = $xml->findnodes('/CHATTER/message');
 
