@@ -83,6 +83,7 @@ sub communicate {
                            or $readQ->enqueue(['login']) },
         send  => sub { $message->[0] =~ tr/\x00-\x20/ /s;
                        send_message($mech, $message->[0]) },
+        title => sub { get_title($mech, @$message) },
         quit  => sub { no warnings 'exiting'; last },
     );
 
@@ -138,6 +139,24 @@ sub communicate {
     }
 }
 
+
+{   my %titles;
+    sub get_title {
+        my ($mech, $url) = @_;
+        my $title = $titles{$url};
+        unless (defined $title) {
+            require XML::LibXML;
+            $mech->get($url . ';displaytype=xml');
+            my $dom;
+            eval {
+                $dom = 'XML::LibXML'->load_xml(string => $mech->content)
+            } or return;
+
+            $titles{$url} = $title = $dom->findvalue('/node/@title');
+        }
+        $readQ->enqueue(['title', $url, $title]);
+    }
+}
 
 sub heartbeat {
     my $ok = $worker_class->$running;
@@ -295,6 +314,7 @@ sub gui {
                              increment_unread($mw); },
             private => sub { show_private($read, @$msg, $tzoffset);
                              increment_unread($mw); },
+            title   => sub { show_title($read, @$msg) },
         );
         while ($msg = $readQ->dequeue_nb) {
             my $type = shift @$msg;
@@ -307,6 +327,18 @@ sub gui {
     $mw->after(1, sub { login_dialog($mw); $write->focus; });
 
     MainLoop();
+}
+
+
+sub show_title {
+    my ($read, $url, $title) = @_;
+    my $tag = "browse:$url";
+    my ($from, $to) = ('1.0');
+    while (($from, $to) = $read->tagNextrange($tag, $from)) {
+        $read->delete($from, $to);
+        $read->insert($from, "[$title]", [$tag]);
+        $from = $to;
+    }
 }
 
 
@@ -374,6 +406,7 @@ sub show {
     while ($message =~ m{(\[id://([0-9]+)\])}g) {
         my ($string, $id) = ($1, $2);
         my $url = PM_BROWSE_URL . $id;
+        ask_title($url);
         my $tag = "browse:" . $url;
         $text->tagConfigure($tag => -background => 'yellow');
         $text->tagAdd(
@@ -384,6 +417,12 @@ sub show {
     }
 
     $text->see('end');
+}
+
+
+sub ask_title {
+    my ($url) = @_;
+    $writeQ->enqueue(['title', $url]);
 }
 
 
