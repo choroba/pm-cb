@@ -95,6 +95,7 @@ sub communicate {
 
         Time::HiRes::usleep(250_000);
         next if time - $last_update < FREQ;
+
         $last_update = time;
 
         my $url = PM_URL . CB;
@@ -209,9 +210,11 @@ sub get_all_private {
     while (1) {
         $mech->get($url);
         last unless $mech->content =~ /</;
+
         my $xml;
         eval { $xml = 'XML::LibXML'->load_xml(string => $mech->content) }
             or last;
+
         my @messages;
         last unless @messages = $xml->findnodes('/CHATTER/message');
 
