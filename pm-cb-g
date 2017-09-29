@@ -517,3 +517,68 @@ sub quit {
     $communicate_t->join;
     Tk::exit();
 }
+
+
+=head1 NAME
+
+pm-cb-g - A GUI client to PerlMonks' Chatter Box
+
+=head1 SYNOPSIS
+
+  pm-cb-g -a blue -b white -c 12 -f black -F Helvetica
+          -p magenta -s 15 -S darkgray -t darkcyan [ -m -n ]
+
+=head1 OPTIONS
+
+Use an integer for I<size>, color name or C<#RRGGBB> code for
+I<color>. The default values are shown in the Synopsis above.
+
+=over
+
+=item B<a|author_color> I<color>
+
+The color to display the names of authors of public messages.
+
+=item B<b|bg_color> I<color>
+
+The background color of the application.
+
+=item B<c|char_size> I<size>
+
+The size of all the characters.
+
+=item B<f|fg_color> I<color>
+
+The foreground colour of the new messages.
+
+=item B<F|font_name> I<font>
+
+The font for all the characters.
+
+=item B<m|mce>
+
+Use L<MCE::Shared> and L<MCE::Hobo> instead of L<threads> and
+L<Thread::Queue>.
+
+=item B<n|no_time>
+
+Don't show time stamps.
+
+=item B<p|private_color> I<color>
+
+The color for the authors of private messages.
+
+=item B<s|stack_size> I<size>
+
+Needed for L<threads>. Use a higher number if the program doesn't work
+with the default value.
+
+=item B<S|seen_color> I<color>
+
+The color for already read messages.
+
+=item B<t|time_color> I<color>
+
+The color for time stamps.
+
+=back
