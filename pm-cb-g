@@ -44,8 +44,9 @@ use if ! $mce => 'Thread::Queue';
 
 my ($queue_class, $queue_constructor, $worker_class, $running)
     = $mce
-    ? ('MCE::Shared',   'queue', 'MCE::Hobo', sub { $_[0]->list_running} )
-    : ('Thread::Queue', 'new',   'threads',   sub { $_[0]->list(threads::running)} );
+    ? ('MCE::Shared', 'queue', 'MCE::Hobo', sub { $_[0]->list_running} )
+    : ('Thread::Queue', 'new', 'threads',
+       sub { $_[0]->list(threads::running())});
 
 my ($readQ, $writeQ) = map $queue_class->$queue_constructor, 1, 2;
 my $communicate_t = $worker_class->create(\&communicate);
