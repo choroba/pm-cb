@@ -7,12 +7,12 @@ use feature qw{ say };
 use Getopt::Long qw( :config no_ignore_case );
 
 my ($bg_color, $fg_color, $author_color, $private_color, $time_color,
-    $font_name, $char_size, $stack_size, $seen_color, $mce, $browser);
+    $font_name, $char_size, $stack_size, $seen_color, $mce, $browser, $no_time);
 
 BEGIN {
     ($bg_color, $fg_color, $author_color, $private_color, $time_color,
-     $seen_color, $font_name, $char_size, $stack_size, $mce)
-        = qw( white black blue magenta darkcyan darkgray Helvetica 12 15 0 );
+     $seen_color, $font_name, $char_size, $stack_size, $mce, $no_time)
+        = qw( white black blue magenta darkcyan darkgray Helvetica 12 15 0 0);
     $browser = {
         darwin  => 'open',
         MSWin32 => 'start',
@@ -28,10 +28,12 @@ BEGIN {
         'f|fg_color=s'      => \$fg_color,
         'F|font_name=s'     => \$font_name,
         'm|mce'             => \$mce,
+		'n|no_time'          => \$no_time,
         'p|private_color=s' => \$private_color,
         's|stack_size=i'    => \$stack_size,
         'S|seen_color=s'    => \$seen_color,
         't|time_color=s'    => \$time_color,
+		
     );
 }
 
@@ -45,7 +47,7 @@ use if ! $mce => 'Thread::Queue';
 my ($queue_class, $queue_constructor, $worker_class, $running)
     = $mce
     ? ('MCE::Shared',   'queue', 'MCE::Hobo', sub { $_[0]->list_running} )
-    : ('Thread::Queue', 'new',   'threads',   sub { $_[0]->list(threads::running)} );
+    : ('Thread::Queue', 'new',   'threads',   sub { $_[0]->list('threads::running')} );
 
 my ($readQ, $writeQ) = map $queue_class->$queue_constructor, 1, 2;
 my $communicate_t = $worker_class->create(\&communicate);
@@ -398,7 +400,7 @@ sub decode {
 
 sub show {
     my ($text, $timestamp, $author, $message, $private) = @_;
-    $text->insert(end => "<$timestamp>", ['time']);
+    $text->insert(end => $no_time ? '' : "<$timestamp>", ['time']);
     $text->insert(end => " [$author]: ",
                   [ $private ? 'private' : 'author']);
 
@@ -520,3 +522,58 @@ sub quit {
     $communicate_t->join;
     Tk::exit();
 }
+__DATA__
+=head1 NAME
+
+PM::CB::G
+
+
+=head1 SYNOPSIS
+
+perl pm-cb-g.pl [-a -b -B -c -f -F -m -n -p -s -S -t ]
+
+=head1 OPTIONS
+
+     -a|author_color        color
+                    color used to show messages author. this and other color options accept color name as understood
+					by Tk
+
+     -b|bg_color  			color
+                    color used for background of read and write panes
+
+     -B|browser				program
+                    program used to open links. MSWin32 user must supply the full path to executable eventually double quoted
+
+     -c|char_size          number
+                    the font size used
+					
+	 -f|fg_color           color
+					color used as foreground one, for simple text and links
+
+     -F|font_name         name
+                    font used in both read and write pane
+
+     -m|mce            
+                    this switch tell the application to use MCE instead of Parallel::ForkManager
+
+     -n|no_time             
+                    this switch hides timestamps before messages as used to be in perlmonks chatterbox history
+
+     -p|private_color     color
+                    color used to display private messages
+
+     -s|stack_size        int
+                    the stack size used by Parallel::ForkManager Default is 15
+
+     -S|seen_color       color
+                    used for already seen messages
+
+     -t|time_color       color
+                    used for timestamps
+
+     
+=head1 DESCRIPTION
+
+
+
+=cut
