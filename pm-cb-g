@@ -154,6 +154,7 @@ sub communicate {
     }
 }
 
+
 sub heartbeat {
     my $ok = $worker_class->$running;
     unless ($ok) {
@@ -484,6 +485,7 @@ sub convert_time {
     return $local_time
 }
 
+
 sub update_time {
     my ($last_update, $server_time, $tzoffset, $last_date) = @_;
     my $local_time = convert_time($server_time, $tzoffset);
@@ -523,6 +525,7 @@ sub update_time {
         send_login();
     }
 }
+
 
 sub quit {
     $writeQ->enqueue(['quit']);
