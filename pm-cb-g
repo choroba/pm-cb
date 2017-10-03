@@ -413,6 +413,18 @@ sub show {
         $text->tagBind($tag, '<Button-1>', sub { browse($url) });
     }
 
+    while ($message =~ m{\[(https?://.+?)\]}g) {
+        my ($url, $name) = split /\|/, $1;
+        $name = $url unless length $name;
+        warn "URL:$url|NAME:$name.\n";
+        my $tag = "browse:$url|$name";
+        $text->tagConfigure($tag => -underline => 1);
+        $text->tagAdd(
+            $tag,
+            ($line - 1) . '.' . ($column + pos($message) - length($url) - length($name) - 1),
+            ($line - 1) . '.' . ($column + pos $message));
+        $text->tagBind($tag, '<Button-1>', sub { browse($url) });
+    }
     $text->see('end');
 }
 
