@@ -243,6 +243,7 @@ sub gui {
 
     require Tk::Dialog;
     require Tk::ROText;
+    require Tk::Balloon;
 
     my $mw = 'MainWindow'->new(-title => TITLE);
     $mw->protocol(WM_DELETE_WINDOW => \&quit);
@@ -257,6 +258,8 @@ sub gui {
     $read->tagConfigure(private => -foreground => $private_color);
     $read->tagConfigure(seen    => -foreground => $seen_color);
     $read->tagConfigure(time    => -foreground => $time_color);
+
+    my $balloon = $mw->Balloon;
 
     my $last_update_f = $mw->Frame->pack;
     $last_update_f->Label(-text => 'Last update:')->pack(-side => 'left');
@@ -308,9 +311,10 @@ sub gui {
             time    => sub { update_time($last_update, $msg->[0], $tzoffset,
                                          \$last_date) },
             login   => sub { login_dialog($mw) },
-            chat    => sub { show_message($read, $last_date, $tzoffset, @$msg);
+            chat    => sub { show_message($read, $last_date, $tzoffset,
+                                          $balloon, @$msg);
                              increment_unread($mw); },
-            private => sub { show_private($read, @$msg, $tzoffset);
+            private => sub { show_private($read, @$msg, $tzoffset, $balloon);
                              increment_unread($mw); },
             title   => sub { show_title($read, @$msg) },
         );
@@ -392,12 +396,14 @@ sub decode {
 
 
 sub show {
-    my ($text, $timestamp, $author, $message, $private) = @_;
+    my ($text, $timestamp, $author, $message, $private, $balloon) = @_;
+
     $text->insert(end => "<$timestamp> ", ['time']) unless $no_time;
     $text->insert(end => "[$author]: ",
                   [ $private ? 'private' : 'author']);
 
     my ($line, $column) = split /\./, $text->index('end');
+    --$line;
     $column += (3 + length($timestamp)) * ! $no_time + 4 + length $author;
     $text->insert(end => "$message\n", ['unseen']);
 
@@ -409,21 +415,27 @@ sub show {
         $text->tagConfigure($tag => -underline => 1);
         $text->tagAdd(
             $tag,
-            ($line - 1) . '.' . ($column + pos($message) - length $string),
-            ($line - 1) . '.' . ($column + pos $message));
+            $line . '.' . ($column + pos($message) - length $string),
+            $line . '.' . ($column + pos $message));
         $text->tagBind($tag, '<Button-1>', sub { browse($url) });
     }
 
     while ($message =~ m{\[(https?://.+?)\]}g) {
         my ($url, $name) = split /\|/, $1;
         $name = $url unless length $name;
-        warn "URL:$url|NAME:$name.\n";
+        my $from = $line . '.'
+                 . ($column + pos($message) - length("[$url|$name]"));
+        my $to = $line . '.' . ($column + pos $message);
+        $text->delete($from, $to);
         my $tag = "browse:$url|$name";
         $text->tagConfigure($tag => -underline => 1);
-        $text->tagAdd(
-            $tag,
-            ($line - 1) . '.' . ($column + pos($message) - length($url) - length($name) - 1),
-            ($line - 1) . '.' . ($column + pos $message));
+        $text->insert($from, "[$name]", [$tag]);
+        $text->tagBind($tag, '<Enter>',
+                       sub { $balloon->attach($text,
+                                              -balloonmsg      => $url,
+                                              -state           => 'balloon',
+                                              -balloonposition => 'mouse') });
+        $text->tagBind($tag, '<Leave>', sub { $balloon->detach($text) });
         $text->tagBind($tag, '<Button-1>', sub { browse($url) });
     }
     $text->see('end');
@@ -447,19 +459,20 @@ sub browse {
 
 
 sub show_message {
-    my ($text, $last_date, $tzoffset, $timestamp, $author, $message) = @_;
+    my ($text, $last_date, $tzoffset, $balloon,
+        $timestamp, $author, $message) = @_;
 
     $message = decode($message);
     $timestamp = convert_time($timestamp, $tzoffset)
                  ->strftime('%Y-%m-%d %H:%M:%S');
 
     substr $timestamp, 0, 11, q() if 0 == index $timestamp, $last_date;
-    show($text, $timestamp, $author, $message, 0);
+    show($text, $timestamp, $author, $message, 0, $balloon);
 }
 
 
 sub show_private {
-    my ($text, $author, $time, $msg, $tzoffset) = @_;
+    my ($text, $author, $time, $msg, $tzoffset, $balloon) = @_;
     $msg = decode($msg);
     $msg =~ s/[\n\r]//g;
 
@@ -473,7 +486,7 @@ sub show_private {
     }
     $time = $time->strftime('%Y-%m-%d %H:%M:%S');
 
-    show($text, $time, $author, $msg, 1);
+    show($text, $time, $author, $msg, 1, $balloon);
 }
 
 
