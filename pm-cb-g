@@ -5,28 +5,31 @@ use feature qw{ say };
 
 
 use Getopt::Long qw( :config no_ignore_case );
+use Pod::Usage;
 
 my ($bg_color, $fg_color, $author_color, $private_color, $time_color,
-    $font_name, $char_size, $stack_size, $seen_color, $mce, $no_time);
+    $font_name, $char_size, $stack_size, $seen_color, $mce, $no_time, $help);
 
 BEGIN {
     ($bg_color, $fg_color, $author_color, $private_color, $time_color,
-     $seen_color, $font_name, $char_size, $stack_size, $mce, $no_time)
-    = qw( white black blue magenta darkcyan darkgray Helvetica 12 15 0 0 );
+     $seen_color, $font_name, $char_size, $stack_size, $mce, $no_time, $help)
+    = qw( white black blue magenta darkcyan darkgray Helvetica 12 15 0 0 0);
 
-    die "Invalid arguments!\n" unless GetOptions(
+    GetOptions(
         'a|author_color=s'  => \$author_color,
         'b|bg_color=s'      => \$bg_color,
         'c|char_size=i'     => \$char_size,
         'f|fg_color=s'      => \$fg_color,
         'F|font_name=s'     => \$font_name,
+        'h|help'            => \$help,
         'm|mce'             => \$mce,
         'n|no_time'         => \$no_time,
         'p|private_color=s' => \$private_color,
         's|stack_size=i'    => \$stack_size,
         'S|seen_color=s'    => \$seen_color,
         't|time_color=s'    => \$time_color,
-    );
+    ) or pod2usage(-verbose => 0) && exit;
+    pod2usage(-verbose => 1) && exit if $help;
 }
 
 
@@ -554,7 +557,7 @@ pm-cb-g - A GUI client to PerlMonks' Chatter Box
 =head1 SYNOPSIS
 
   pm-cb-g -a blue -b white -c 12 -f black -F Helvetica
-          -p magenta -s 15 -S darkgray -t darkcyan [ -m -n ]
+          -p magenta -s 15 -S darkgray -t darkcyan [ -h -m -n ]
 
 =head1 OPTIONS
 
@@ -582,6 +585,10 @@ The foreground colour of the new messages.
 =item B<F|font_name> I<font>
 
 The font for all the characters.
+
+=item B<h|help>
+
+Prints options and arguments.
 
 =item B<m|mce>
 
