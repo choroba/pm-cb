@@ -258,8 +258,8 @@ sub gui {
     $read->tagConfigure(time    => -foreground => $time_color);
 
     my $last_update_f = $mw->Frame->pack;
-    $read_f->Label(-text => 'Last update:')->pack(-side => 'left');
-    my $last_update = $read_f->Label->pack(-side => 'left');
+    $last_update_f->Label(-text => 'Last update:')->pack(-side => 'left');
+    my $last_update = $last_update_f->Label->pack(-side => 'left');
 
     my $write_f = $mw->Frame->pack(-fill => 'x');
     my $write   = $write_f->Text(-height     => 3,
