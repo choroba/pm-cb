@@ -413,7 +413,7 @@ sub show {
 
     while ($message =~ m{(\[id://([0-9]+)\])}g) {
         my ($string, $id) = ($1, $2);
-        my $url = PM_BROWSE_URL . $id;
+        my $url = PM_URL . $id;
         ask_title($url);
         my $tag = "browse:" . $url;
         $text->tagConfigure($tag => -underline => 1);
@@ -421,16 +421,17 @@ sub show {
             $tag,
             $line . '.' . ($column + pos($message) - length $string),
             $line . '.' . ($column + pos $message));
-        $text->tagBind($tag, '<Button-1>', sub { browse($url) });
+        $text->tagBind($tag, '<Button-1>', sub { browse(PM_BROWSE_URL . $id) });
     }
 
     while ($message =~ m{\[(https?://.+?)\]}g) {
         my ($url, $name) = split /\|/, $1;
-        $name = $url unless length $name;
         my $from = $line . '.'
-                 . ($column + pos($message) - length("[$url|$name]"));
+                 . ($column + pos($message)
+                 - length(length $name ? "[$url|$name]" : "[$url]"));
         my $to = $line . '.' . ($column + pos $message);
         $text->delete($from, $to);
+        $name = $url unless length $name;
         my $tag = "browse:$url|$name";
         $text->tagConfigure($tag => -underline => 1);
         $text->insert($from, "[$name]", [$tag]);
