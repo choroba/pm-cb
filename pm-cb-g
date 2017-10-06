@@ -71,7 +71,7 @@ sub communicate {
     require WWW::Mechanize;
     require Time::HiRes;
 
-    my $mech = 'WWW::Mechanize'->new;
+    my $mech = 'WWW::Mechanize'->new( timeout => 16, autocheck => 0 );
 
     my ($from_id, $previous, %seen);
 
@@ -172,13 +172,16 @@ sub heartbeat {
 
 sub login {
     my ($mech, $username, $password) = @_;
-    $mech->get(PM_URL . LOGIN);
-    $mech->submit_form(
-        form_number => 1,
-        fields      => { user   => $username,
-                         passwd => $password,
-    });
-    return $mech->content !~ /^Oops\.  You must have the wrong login/m
+    my $response = $mech->get(PM_URL . LOGIN);
+    if ($response->is_success) {
+        $mech->submit_form(
+            form_number => 1,
+            fields      => { user   => $username,
+                             passwd => $password,
+        });
+        return $mech->content !~ /^Oops\.  You must have the wrong login/m
+    }
+    return
 }
 
 
