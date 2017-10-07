@@ -418,6 +418,7 @@ sub show {
                                  https?
                                  | (?:meta)?mod | doc
                                  | id
+                                 | wp
                                )://.+?\s*)\]}gx
     ) {
         my ($url, $name) = split /\|/, $1;
@@ -430,6 +431,7 @@ sub show {
         $name = $url unless length $name;
         s/^\s+//, s/\s+$// for $name, $url;
         $url =~ s{^(?:(?:meta)?mod|doc)://}{http://p3rl.org/};
+        $url =~ s{^wp://}{https://en.wikipedia.org/wiki/};
 
         if ($url =~ m{^id://([0-9]+)} && $name eq $url) {
             ask_title(PM_URL . $1, $url);
