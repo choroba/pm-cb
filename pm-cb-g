@@ -142,7 +142,7 @@ sub communicate {
 
 {   my %titles;
     sub get_title {
-        my ($mech, $url) = @_;
+        my ($mech, $url, $name) = @_;
         my $title = $titles{$url};
         unless (defined $title) {
             require XML::LibXML;
@@ -154,7 +154,7 @@ sub communicate {
 
             $titles{$url} = $title = $dom->findvalue('/node/@title');
         }
-        $readQ->enqueue(['title', $url, $title]);
+        $readQ->enqueue(['title', $url, $name, $title]);
     }
 }
 
@@ -340,8 +340,8 @@ sub gui {
 
 
 sub show_title {
-    my ($read, $url, $title) = @_;
-    my $tag = "browse:$url";
+    my ($read, undef, $name, $title) = @_;
+    my $tag = "browse:$name|$name";
     my ($from, $to) = ('1.0');
     while (($from, $to) = $read->tagNextrange($tag, $from)) {
         $read->delete($from, $to);
@@ -414,22 +414,10 @@ sub show {
     $column += (3 + length($timestamp)) * ! $no_time + 4 + length $author;
     $text->insert(end => "$message\n", ['unseen']);
 
-    while ($message =~ m{(\[id://([0-9]+)\])}g) {
-        my ($string, $id) = ($1, $2);
-        my $url = PM_URL . $id;
-        ask_title($url);
-        my $tag = "browse:" . $url;
-        $text->tagConfigure($tag => -underline => 1);
-        $text->tagAdd(
-            $tag,
-            $line . '.' . ($column + pos($message) - length $string),
-            $line . '.' . ($column + pos $message));
-        $text->tagBind($tag, '<Button-1>', sub { browse(PM_BROWSE_URL . $id) });
-    }
-
     while ($message =~ m{\[(\s*(?:
                                  https?
                                  | (?:meta)?mod | doc
+                                 | id
                                )://.+?\s*)\]}gx
     ) {
         my ($url, $name) = split /\|/, $1;
@@ -442,6 +430,10 @@ sub show {
         $name = $url unless length $name;
         s/^\s+//, s/\s+$// for $name, $url;
         $url =~ s{^(?:(?:meta)?mod|doc)://}{http://p3rl.org/};
+
+        if ($url =~ m{^id://([0-9]+)} && $name eq $url) {
+            ask_title(PM_URL . $1, $url);
+        }
 
         my $tag = "browse:$url|$name";
         $text->tagConfigure($tag => -underline => 1);
@@ -459,8 +451,8 @@ sub show {
 
 
 sub ask_title {
-    my ($url) = @_;
-    $writeQ->enqueue(['title', $url]);
+    my ($url, $name) = @_;
+    $writeQ->enqueue(['title', $url, $name]);
 }
 
 
