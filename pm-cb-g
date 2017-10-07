@@ -427,7 +427,11 @@ sub show {
         $text->tagBind($tag, '<Button-1>', sub { browse(PM_BROWSE_URL . $id) });
     }
 
-    while ($message =~ m{\[(\s*https?://.+?\s*)\]}g) {
+    while ($message =~ m{\[(\s*(?:
+                                 https?
+                                 | (?:meta)?mod | doc
+                               )://.+?\s*)\]}gx
+    ) {
         my ($url, $name) = split /\|/, $1;
         my $from = $line . '.'
                  . ($column + pos($message)
@@ -437,6 +441,7 @@ sub show {
 
         $name = $url unless length $name;
         s/^\s+//, s/\s+$// for $name, $url;
+        $url =~ s{^(?:(?:meta)?mod|doc)://}{http://p3rl.org/};
 
         my $tag = "browse:$url|$name";
         $text->tagConfigure($tag => -underline => 1);
