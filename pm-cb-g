@@ -569,7 +569,7 @@ sub quit {
 sub set_options {
       my $mw = shift;
       my ($read ,$write,$last_update)=@_;
-      my $advw = $mw->Toplevel()}
+      my $advw = $mw->Toplevel();
       $advw->title( TITLE." options" );
       # font options box
       my $frmult0 = $advw->Frame( -borderwidth => 2,-relief => 'groove'
