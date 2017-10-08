@@ -142,9 +142,10 @@ sub communicate {
 
 {   my %titles;
     sub get_title {
-        my ($mech, $url, $name) = @_;
-        my $title = $titles{$url};
+        my ($mech, $id, $name) = @_;
+        my $title = $titles{$id};
         unless (defined $title) {
+            my $url = PM_URL . $id;
             require XML::LibXML;
             $mech->get($url . ';displaytype=xml');
             my $dom;
@@ -152,9 +153,9 @@ sub communicate {
                 $dom = 'XML::LibXML'->load_xml(string => $mech->content)
             } or return;
 
-            $titles{$url} = $title = $dom->findvalue('/node/@title');
+            $titles{$id} = $title = $dom->findvalue('/node/@title');
         }
-        $readQ->enqueue(['title', $url, $name, $title]);
+        $readQ->enqueue(['title', $id, $name, $title]);
     }
 }
 
@@ -340,8 +341,8 @@ sub gui {
 
 
 sub show_title {
-    my ($read, undef, $name, $title) = @_;
-    my $tag = "browse:$name|$name";
+    my ($read, $id, $name, $title) = @_;
+    my $tag = "browse:$id|$name";
     my ($from, $to) = ('1.0');
     while (($from, $to) = $read->tagNextrange($tag, $from)) {
         $read->delete($from, $to);
@@ -433,11 +434,15 @@ sub show {
         $url =~ s{^(?:(?:meta)?mod|doc)://}{http://p3rl.org/};
         $url =~ s{^wp://}{https://en.wikipedia.org/wiki/};
 
-        if ($url =~ m{^id://([0-9]+)} && $name eq $url) {
-            ask_title(PM_URL . $1, $url);
+        my $tag = "browse:$url|$name";
+
+        if ($url =~ m{^id://([0-9]+)}) {
+            my $id = $1;
+            ask_title($id, $url) if $name eq $url;
+            $url = PM_BROWSE_URL . $id;
+            $tag = "browse:$id|$name";
         }
 
-        my $tag = "browse:$url|$name";
         $text->tagConfigure($tag => -underline => 1);
         $text->insert($from, "[$name]", [$tag]);
         $text->tagBind($tag, '<Enter>',
@@ -453,8 +458,8 @@ sub show {
 
 
 sub ask_title {
-    my ($url, $name) = @_;
-    $writeQ->enqueue(['title', $url, $name]);
+    my ($id, $name) = @_;
+    $writeQ->enqueue(['title', $id, $name]);
 }
 
 
