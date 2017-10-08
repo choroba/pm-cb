@@ -106,10 +106,9 @@ sub communicate {
             $xml = 'XML::LibXML'->load_xml(string => $mech->content);
         }) {
 
-            my $time = $xml->findvalue('/chatter/info/@gentimeGMT');
-            $readQ->enqueue([ time => $time ]);
-
             my @messages = $xml->findnodes('/chatter/message');
+
+            my $time = $xml->findvalue('/chatter/info/@gentimeGMT');
 
             for my $message (@messages) {
                 my $id = $message->findvalue('message_id');
@@ -121,6 +120,7 @@ sub communicate {
                     undef $seen{$id};
                 }
             }
+            $readQ->enqueue([ time => $time, !! @messages ]);
 
             my $new_from_id = $xml->findvalue(
                 '/chatter/message[last()]/message_id');
@@ -327,7 +327,7 @@ sub gui {
         my $msg;
         my %dispatch = (
             time    => sub { update_time($last_update, $msg->[0], $tzoffset,
-                                         \$last_date) },
+                                         $msg->[1], \$last_date) },
             login   => sub { login_dialog($mw) },
             chat    => sub { show_message($read, $last_date, $tzoffset,
                                           $balloon, @$msg);
@@ -611,12 +611,13 @@ sub convert_time {
 
 
 sub update_time {
-    my ($last_update, $server_time, $tzoffset, $last_date) = @_;
+    my ($last_update, $server_time, $tzoffset, $should_update, $last_date)
+        = @_;
     my $local_time = convert_time($server_time, $tzoffset);
     $last_update->configure(
         -text => 'Last update: '
                  . $local_time->strftime('%Y-%m-%d %H:%M:%S'));
-    $$last_date = $local_time->strftime('%Y-%m-%d');
+    $$last_date = $local_time->strftime('%Y-%m-%d') if $should_update;
 }
 
 
