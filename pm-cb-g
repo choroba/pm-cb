@@ -305,6 +305,16 @@ sub gui {
     )->pack(-side => 'left');
     $mw->bind('<Alt-a>', sub { $save_b->invoke });
 
+    my $opt_b;
+    $opt_b = $button_f->Button(
+        -text => 'Options',
+        -command => sub {
+            show_options($mw, $read, $write, $last_update, $opt_b);
+        },
+        -underline => 0,
+    )->pack(-side => 'left');
+    $mw->bind('<Alt-o>', sub { $opt_b->invoke });
+
     my $quit_b = $button_f->Button(-text => 'Quit',
                                    -command => \&quit,
                                    -underline => 0,
@@ -337,6 +347,92 @@ sub gui {
     $mw->after(1, sub { login_dialog($mw); $write->focus; });
 
     Tk::MainLoop();
+}
+
+
+sub show_options {
+    my ($mw, $read, $write, $last_update, $opt_b) = @_;
+    $opt_b->configure(-state => 'disabled');
+    my $opt_w = $mw->Toplevel(-title => TITLE . ' Options');
+
+    my $opt_f = $opt_w->Frame(-relief => 'groove', -borderwidth => 2)
+        ->pack(-padx => 5, -pady => 5);
+
+    my @opts = (
+        [ 'Font Size'        => \$char_size ],
+        [ 'Font Family'      => \$font_name ],
+        [ 'Background Color' => \$bg_color ],
+        [ 'Foreground Color' => \$fg_color ],
+        [ 'Author Color'     => \$author_color ],
+        [ 'Private Color'    => \$private_color ],
+        [ 'Timestamp Color'  => \$time_color ],
+        [ 'Seen Color'       => \$seen_color ],
+    );
+
+    for my $opt (@opts) {
+        my $f = $opt_f->Frame->pack(-fill => 'x');
+        $f->Label(-text => $opt->[0])->pack(-side => 'left');
+        $f->Entry(-textvariable => $opt->[1])->pack(-side => 'right');
+    }
+
+    my $time_f = $opt_f->Frame->pack(-fill => 'x');
+    $opt_f->Label(-text => 'Show Timestamps')->pack(-side => 'left');
+    $opt_f->Checkbutton(-variable => \(my $show_time = ! $no_time))
+        ->pack(-side => 'right');
+
+    my $info_f = $opt_w->Frame(-relief => 'groove', -borderwidth => 2)
+        ->pack(-padx => 5, -pady => 5);
+    $info_f->Label(-justify => 'left',
+                   -text => join "\n",
+                       'Threading model:',
+                       ($mce ? ('MCE::Hobo '     . $MCE::Hobo::VERSION,
+                                'MCE::Shared '   . $MCE::Shared::VERSION)
+                             : ('threads '       . $threads::VERSION,
+                                'Thread::Queue ' . $Thread::Queue::VERSION)
+                       ),
+                       'Stack size: ' . 2 ** $stack_size
+    )->pack(-side => 'left', -padx => 5);
+
+    my $button_f = $opt_w->Frame->pack(-padx => 5, -pady => 5);
+    my $apply_b = $button_f->Button(
+        -text => 'Apply',
+        -command => sub{
+            update_options($mw, $read, $write, $last_update, $show_time);
+            $opt_w->destroy;
+            $opt_b->configure(-state => 'normal');
+        },
+        -underline => 0,
+    )->pack(-side => 'left');
+    $opt_w->bind('<Alt-a>', sub { $apply_b->invoke });
+
+    my $cancel_b = $button_f->Button(
+        -text => 'Cancel',
+        -command => sub {
+            $opt_w->destroy;
+            $opt_b->configure(-state => 'normal');
+        },
+    )->pack(-side => 'left');
+    $opt_w->bind('<Escape>', sub { $cancel_b->invoke });
+}
+
+
+sub update_options {
+    my ($mw, $read, $write, $last_update, $show_time) = @_;
+    $mw->optionAdd('*font', "$font_name $char_size");
+    for my $part ($read, $write, $last_update) {
+        $part->configure(-font => $mw->fontCreate(
+                                  -family => $font_name,
+                                  -size   => $char_size,
+                                  ),
+                         (-bg  => $bg_color) x ($last_update != $part),
+                         -fg   => $fg_color,
+        );
+    }
+    $read->tagConfigure(author  => -foreground => $author_color);
+    $read->tagConfigure(private => -foreground => $private_color);
+    $read->tagConfigure(seen    => -foreground => $seen_color);
+    $read->tagConfigure(time    => -foreground => $time_color);
+    $no_time = ! $show_time;
 }
 
 
