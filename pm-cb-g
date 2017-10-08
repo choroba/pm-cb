@@ -51,14 +51,14 @@ my $communicate_t = $worker_class->create(\&communicate);
 
 
 use constant {
-    PM_URL => 'http://www.perlmonks.org/bare/?node_id=',
+    PM_URL        => 'http://www.perlmonks.org/bare/?node_id=',
     PM_BROWSE_URL => 'http://www.perlmonks.org/?node_id=',
-    FREQ   => 7,
+    FREQ          => 7,
     # Node ids:
-    LOGIN   => 109,
-    CB      => 207304,
-    SEND    => 227820,
-    PRIVATE => 15848,
+    LOGIN         => 109,
+    CB            => 207304,
+    SEND          => 227820,
+    PRIVATE       => 15848,
 };
 
 use constant TITLE => 'PM::CB::G';
