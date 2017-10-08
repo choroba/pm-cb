@@ -270,8 +270,8 @@ sub gui {
     my $balloon = $mw->Balloon;
 
     my $last_update_f = $mw->Frame->pack;
-    $last_update_f->Label(-text => 'Last update:')->pack(-side => 'left');
-    my $last_update = $last_update_f->Label->pack(-side => 'left');
+    my $last_update = $last_update_f->Label(-text => 'No update yet')
+        ->pack(-side => 'left');
 
     my $write_f = $mw->Frame->pack(-fill => 'x');
     my $write   = $write_f->Text(-height     => 3,
@@ -518,7 +518,8 @@ sub update_time {
     my ($last_update, $server_time, $tzoffset, $last_date) = @_;
     my $local_time = convert_time($server_time, $tzoffset);
     $last_update->configure(
-        -text => $local_time->strftime('%Y-%m-%d %H:%M:%S'));
+        -text => 'Last update: '
+                 . $local_time->strftime('%Y-%m-%d %H:%M:%S'));
     $$last_date = $local_time->strftime('%Y-%m-%d');
 }
 
