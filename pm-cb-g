@@ -269,15 +269,16 @@ sub gui {
 
     my $balloon = $mw->Balloon;
 
-    my $last_update_f = $mw->Frame->pack;
-    $last_update_f->Label(-text => 'Last update:')->pack(-side => 'left');
-    my $last_update = $last_update_f->Label->pack(-side => 'left');
+    my $last_update_f = $mw->Frame->pack(-fill => 'x');
+
+    my $last_update = $last_update_f->Label(-text => 'Last update: none yet'
+                                )->pack(-expand => 1,-fill => 'x');
 
     my $write_f = $mw->Frame->pack(-fill => 'x');
     my $write   = $write_f->Text(-height     => 3,
                                  -background => $bg_color,
                                  -foreground => $fg_color,
-                                 -wrap       => 'word')
+                                 -wrap => 'word')
         ->pack(-fill => 'x');
 
     my $button_f = $mw->Frame->pack;
@@ -305,6 +306,13 @@ sub gui {
     )->pack(-side => 'left');
     $mw->bind('<Alt-a>', sub { $save_b->invoke });
 
+    my $opt_b = $button_f->Button(-text => 'Otpions',
+                                   -command => sub{ set_options($mw,$read,$write,
+                                                                $last_update) },
+                                   -underline => 0,
+                                  )->pack(-side => 'left');
+    $mw->bind('<Alt-o>', sub { $opt_b->invoke });
+    
     my $quit_b = $button_f->Button(-text => 'Quit',
                                    -command => \&quit,
                                    -underline => 0,
@@ -518,7 +526,7 @@ sub update_time {
     my ($last_update, $server_time, $tzoffset, $last_date) = @_;
     my $local_time = convert_time($server_time, $tzoffset);
     $last_update->configure(
-        -text => $local_time->strftime('%Y-%m-%d %H:%M:%S'));
+        -text => 'Last update: '.$local_time->strftime('%Y-%m-%d %H:%M:%S'));
     $$last_date = $local_time->strftime('%Y-%m-%d');
 }
 
@@ -562,6 +570,132 @@ sub quit {
 }
 
 
+sub set_options {
+      my $mw = shift;
+      my ($read ,$write,$last_update)=@_;
+      my $advw = $mw->Toplevel();
+      $advw->title( TITLE." options" );
+      # font options box
+      my $frmult0 = $advw->Frame( -borderwidth => 2,-relief => 'groove'
+                      )->pack(-side=>'top',-padx=>5,-pady=>5,-fill=>'x');
+
+      my $frmult01 = $frmult0->Frame(
+                      )->pack(-side=>'top',-padx=>5,-pady=>5,-fill=>'x');
+        
+      $frmult01->Label( -text => "font size" )->pack(-side=>'left',-padx=>5);
+
+      $frmult01->Entry(-width => 3, -textvariable => \$char_size
+                      )->pack(-side => 'right', -padx=>5,);
+
+      my $frmult02 = $frmult0->Frame(
+                      )->pack(-side=>'top',-padx=>5,-pady=>5,-fill=>'x');
+
+      $frmult02->Label( -text => "font family" )->pack(-side=>'left',-padx=>5);
+
+      $frmult02->Entry(-width => 12, -textvariable => \$font_name
+                      )->pack(-side => 'right',-padx=>5);
+      # color options box
+      my $frmult1 = $advw->Frame( -borderwidth => 2,-relief => 'groove'
+                    )->pack(-side=>'top',-padx=>5,-pady=>5,-fill=>'x');
+
+      my $frmult11 = $frmult1->Frame(
+                      )->pack(-side=>'top',-padx=>5,-pady=>5,-fill=>'x');
+      $frmult11->Label( -text => "background",)->pack(-side=>'left',-padx=>5);
+      $frmult11->Entry(-width => 8, -textvariable => \$bg_color
+                       )->pack(-side => 'right', -padx=>5,);
+
+      my $frmult12 = $frmult1->Frame(
+                      )->pack(-side=>'top',-padx=>5,-pady=>5,-fill=>'x');
+      $frmult12->Label( -text => "foreground",)->pack(-side=>'left',-padx=>5);
+      $frmult12->Entry(-width => 8, -textvariable => \$fg_color
+                       )->pack(-side => 'right', -padx=>5,);
+
+      my $frmult13 = $frmult1->Frame(
+                      )->pack(-side=>'top',-padx=>5,-pady=>5,-fill=>'x');
+      $frmult13->Label( -text => "author",)->pack(-side=>'left',-padx=>5);
+      $frmult13->Entry(-width => 8, -textvariable => \$author_color
+                       )->pack(-side => 'right', -padx=>5,);
+
+      my $frmult14 = $frmult1->Frame(
+                      )->pack(-side=>'top',-padx=>5,-pady=>5,-fill=>'x');
+      $frmult14->Label( -text => "private",)->pack(-side=>'left',-padx=>5);
+      $frmult14->Entry(-width => 8, -textvariable => \$private_color
+                       )->pack(-side => 'right', -padx=>5,);
+                       
+      my $frmult15 = $frmult1->Frame(
+                      )->pack(-side=>'top',-padx=>5,-pady=>5,-fill=>'x');
+      $frmult15->Label( -text => "time",)->pack(-side=>'left',-padx=>5);
+      $frmult15->Entry(-width => 8, -textvariable => \$time_color
+                       )->pack(-side => 'right', -padx=>5,);
+                       
+       my $frmult16 = $frmult1->Frame(
+                      )->pack(-side=>'top',-padx=>5,-pady=>5,-fill=>'x');
+      $frmult16->Label( -text => "seen",)->pack(-side=>'left',-padx=>5);
+      $frmult16->Entry(-width => 8, -textvariable => \$seen_color
+                       )->pack(-side => 'right', -padx=>5,);
+      # misc options box
+      my $frmult2 = $advw->Frame( -borderwidth => 2,-relief => 'groove'
+                       )->pack(-side=>'top',-padx=>5,-pady=>5,-fill=>'x');
+
+      my $frmult21 = $frmult2->Frame(
+        )->pack(-side=>'top',-padx=>5,-pady=>5,-fill=>'x');
+
+      $frmult21->Label( -text => "no time" )->pack(-side=>'left',-padx=>5);
+      $frmult21->Checkbutton(-variable => \$no_time
+                       )->pack(-side => 'right', -padx=>5,);
+      # info box
+      my $frmult3 = $advw->Frame( -borderwidth => 2,-relief => 'groove'
+                       )->pack(-side=>'top',-padx=>5,-pady=>5,-fill=>'x');
+
+      my $frmult31 = $frmult3->Frame(
+                      )->pack(-side=>'top',-padx=>5,-pady=>5,-fill=>'x');
+
+      $frmult31->Label( -justify => 'left',
+                        -text => "threading model: \n".
+                                  ( $mce                                    ?
+                                    'MCE::Hobo '.$MCE::Hobo::VERSION."\n".
+                                    'MCE::Shared '.$MCE::Shared::VERSION    :
+                                    'threads '.$threads::VERSION."\n".
+                                    'Thread::Queue '.$Thread::Queue::VERSION.' '.
+                                    "(stack size: ".2 ** $stack_size.")"
+                                    ),
+                      )->pack(-side=>'left',-padx=>5);
+      # apply frame
+      my $frmultlast = $advw->Frame(
+                      )->pack(-side=>'top',-padx=>5,-pady=>5,-fill=>'x');
+      my $apply_b = $frmultlast->Button(
+                                    -text => 'Apply',
+                                    -command => sub{
+                                                    &update_options($mw,$read,
+                                                                    $write,
+                                                                    $last_update
+                                                                    );
+                                                    $advw->destroy
+                                    },
+                                   -underline => 0,
+                                  )->pack();
+    $advw->bind('<Alt-a>', sub { $apply_b->invoke });
+}
+
+
+sub update_options{
+    my $mw = shift;
+    my ($read ,$write,$last_update)=@_;
+    $mw->optionAdd('*font', "$font_name $char_size");
+    foreach my $part ($read ,$write,$last_update){
+        $part->configure( -font=> $mw->fontCreate(
+                           -family =>  $font_name,
+                           -size => $char_size,
+                          ),
+                          -bg => $bg_color,
+                          -fg => $fg_color,
+                          )
+    }
+    $read->tagConfigure(author  => -foreground => $author_color);
+    $read->tagConfigure(private => -foreground => $private_color);
+    $read->tagConfigure(seen    => -foreground => $seen_color);
+    $read->tagConfigure(time    => -foreground => $time_color);
+}
 =head1 NAME
 
 pm-cb-g - A GUI client to PerlMonks' Chatter Box
