@@ -268,16 +268,16 @@ sub gui {
 
     my $balloon = $mw->Balloon;
 
-    my $last_update_f = $mw->Frame->pack;
-    #my $last_update_pre = $last_update_f->Label(-text => 'Last update:')
-    #                      ->pack(-side => 'left');
-    my $last_update = $last_update_f->Label(-text => 'Last update:')->pack(-side => 'left',-expand => 1,);
+    my $last_update_f = $mw->Frame->pack(-fill => 'x');
+
+    my $last_update = $last_update_f->Label(-text => 'Last update: none yet'
+                                )->pack(-expand => 1,-fill => 'x');
 
     my $write_f = $mw->Frame->pack(-fill => 'x');
     my $write   = $write_f->Text(-height     => 3,
                                  -background => $bg_color,
                                  -foreground => $fg_color,
-                                 -wrap       => 'word')
+                                 -wrap => 'word')
         ->pack(-fill => 'x');
 
     my $button_f = $mw->Frame->pack;
@@ -305,18 +305,18 @@ sub gui {
     )->pack(-side => 'left');
     $mw->bind('<Alt-a>', sub { $save_b->invoke });
 
+    my $opt_b = $button_f->Button(-text => 'Otpions',
+                                   -command => sub{ set_options($mw,$read,$write,
+                                                                $last_update) },
+                                   -underline => 0,
+                                  )->pack(-side => 'left');
+    $mw->bind('<Alt-o>', sub { $opt_b->invoke });
+    
     my $quit_b = $button_f->Button(-text => 'Quit',
                                    -command => \&quit,
                                    -underline => 0,
                                   )->pack(-side => 'left');
     $mw->bind('<Alt-q>', sub { $quit_b->invoke });
-
-    my $opt_b = $button_f->Button(-text => 'Otpions',
-                                   -command => sub{ set_options($mw,$read,$write,
-                                                                $last_update) },
-                                   -underline => 0,
-                                  )->pack(-side => 'right');
-    $mw->bind('<Alt-o>', sub { $opt_b->invoke });
 
     my ($username, $password);
 
@@ -565,86 +565,120 @@ sub quit {
     Tk::exit();
 }
 
-################################################################################
+
 sub set_options {
-#($bg_color, $fg_color, $author_color, $private_color, $time_color,
-#     $seen_color, $font_name, $char_size, $stack_size, $mce, $no_time, $help)
       my $mw = shift;
       my ($read ,$write,$last_update)=@_;
       my $advw;
       $advw = $mw->Toplevel() unless Tk::Exists($advw);
-      #$advw->Icon(-image=>$mw->Pixmap(-data => &woodpecker_icon));
-      #$advw->geometry("620x315+0+0");
+      $advw->title( TITLE." options" );
+      # font options box
+      my $frmult0 = $advw->Frame( -borderwidth => 2,-relief => 'groove'
+                      )->pack(-side=>'top',-padx=>5,-pady=>5,-fill=>'x');
 
-      $advw->title("options");
-      # allow overwrite frame
-      my $frmult0 = $advw->Frame( -borderwidth => 2,
-                                  -relief => 'groove'
-        )->pack(-side=>'top',-padx=>5,-pady=>5,-fill=>'x');
-      $frmult0->Label( -text => "character size",
-                                        #-disabledforeground=>'gray'
-        )->pack(-side=>'left',-padx=>10);
-
-      $frmult0->Entry(-width => 3, -textvariable => \$char_size
-        )->pack(-side => 'left', -expand => 1,-padx=>5, -fill=>'x');
+      my $frmult01 = $frmult0->Frame(
+                      )->pack(-side=>'top',-padx=>5,-pady=>5,-fill=>'x');
         
-      $frmult0->Label( -text => "font family",
-                                        #-disabledforeground=>'gray'
-        )->pack(-side=>'left',-padx=>10);
+      $frmult01->Label( -text => "font size" )->pack(-side=>'left',-padx=>5);
 
-      $frmult0->Entry(-width => 12, -textvariable => \$font_name
-        )->pack(-side => 'left', -expand => 1,-padx=>5);
-      #
+      $frmult01->Entry(-width => 3, -textvariable => \$char_size
+                      )->pack(-side => 'right', -padx=>5,);
+
+      my $frmult02 = $frmult0->Frame(
+                      )->pack(-side=>'top',-padx=>5,-pady=>5,-fill=>'x');
+
+      $frmult02->Label( -text => "font family" )->pack(-side=>'left',-padx=>5);
+
+      $frmult02->Entry(-width => 12, -textvariable => \$font_name
+                      )->pack(-side => 'right',-padx=>5);
+      # color options box
       my $frmult1 = $advw->Frame( -borderwidth => 2,-relief => 'groove'
-          )->pack(-side=>'top',-padx=>5,-pady=>5,-fill=>'x');
+                    )->pack(-side=>'top',-padx=>5,-pady=>5,-fill=>'x');
 
-      $frmult1->Label( -text => "background",)->pack(-side=>'left',-padx=>10);
+      my $frmult11 = $frmult1->Frame(
+                      )->pack(-side=>'top',-padx=>5,-pady=>5,-fill=>'x');
+      $frmult11->Label( -text => "background",)->pack(-side=>'left',-padx=>5);
+      $frmult11->Entry(-width => 8, -textvariable => \$bg_color
+                       )->pack(-side => 'right', -padx=>5,);
 
-      $frmult1->Entry(-width => 8, -textvariable => \$bg_color
-        )->pack(-side => 'left', -expand => 1,-padx=>5, -fill=>'x');
+      my $frmult12 = $frmult1->Frame(
+                      )->pack(-side=>'top',-padx=>5,-pady=>5,-fill=>'x');
+      $frmult12->Label( -text => "foreground",)->pack(-side=>'left',-padx=>5);
+      $frmult12->Entry(-width => 8, -textvariable => \$fg_color
+                       )->pack(-side => 'right', -padx=>5,);
 
-      $frmult1->Label( -text => "foreground",)->pack(-side=>'left',-padx=>10);
+      my $frmult13 = $frmult1->Frame(
+                      )->pack(-side=>'top',-padx=>5,-pady=>5,-fill=>'x');
+      $frmult13->Label( -text => "author",)->pack(-side=>'left',-padx=>5);
+      $frmult13->Entry(-width => 8, -textvariable => \$author_color
+                       )->pack(-side => 'right', -padx=>5,);
 
-      $frmult1->Entry(-width => 8, -textvariable => \$fg_color
-        )->pack(-side => 'left', -expand => 1,-padx=>5, -fill=>'x');
-        
-      $frmult1->Label( -text => "author",)->pack(-side=>'left',-padx=>10);
+      my $frmult14 = $frmult1->Frame(
+                      )->pack(-side=>'top',-padx=>5,-pady=>5,-fill=>'x');
+      $frmult14->Label( -text => "private",)->pack(-side=>'left',-padx=>5);
+      $frmult14->Entry(-width => 8, -textvariable => \$private_color
+                       )->pack(-side => 'right', -padx=>5,);
+                       
+      my $frmult15 = $frmult1->Frame(
+                      )->pack(-side=>'top',-padx=>5,-pady=>5,-fill=>'x');
+      $frmult15->Label( -text => "time",)->pack(-side=>'left',-padx=>5);
+      $frmult15->Entry(-width => 8, -textvariable => \$time_color
+                       )->pack(-side => 'right', -padx=>5,);
+                       
+       my $frmult16 = $frmult1->Frame(
+                      )->pack(-side=>'top',-padx=>5,-pady=>5,-fill=>'x');
+      $frmult16->Label( -text => "seen",)->pack(-side=>'left',-padx=>5);
+      $frmult16->Entry(-width => 8, -textvariable => \$seen_color
+                       )->pack(-side => 'right', -padx=>5,);
+      # misc options box
+      my $frmult2 = $advw->Frame( -borderwidth => 2,-relief => 'groove'
+                       )->pack(-side=>'top',-padx=>5,-pady=>5,-fill=>'x');
 
-      $frmult1->Entry(-width => 8, -textvariable => \$author_color
-        )->pack(-side => 'left', -expand => 1,-padx=>5, -fill=>'x');
-        
-      $frmult1->Label( -text => "private",)->pack(-side=>'left',-padx=>10);
-
-      $frmult1->Entry(-width => 8, -textvariable => \$private_color
-        )->pack(-side => 'left', -expand => 1,-padx=>5, -fill=>'x');
-        
-      $frmult1->Label( -text => "time",)->pack(-side=>'left',-padx=>10);
-
-      $frmult1->Entry(-width => 8, -textvariable => \$time_color
-        )->pack(-side => 'left', -expand => 1,-padx=>5, -fill=>'x');
-        
-      $frmult1->Label( -text => "seen",)->pack(-side=>'left',-padx=>10);
-
-      $frmult1->Entry(-width => 8, -textvariable => \$seen_color
-        )->pack(-side => 'left', -expand => 1,-padx=>5, -fill=>'x');
-      #
-      my $frmultlast = $advw->Frame( #-borderwidth => 2,
-                                  #-relief => 'groove'
+      my $frmult21 = $frmult2->Frame(
         )->pack(-side=>'top',-padx=>5,-pady=>5,-fill=>'x');
-      my $apply_b = $frmultlast->Button(-text => 'Apply',
-                                   -command => sub{ &update_options($mw,$read,$write,
+
+      $frmult21->Label( -text => "no time" )->pack(-side=>'left',-padx=>5);
+      $frmult21->Checkbutton(-variable => \$no_time
+                       )->pack(-side => 'right', -padx=>5,);
+      # info box
+      my $frmult3 = $advw->Frame( -borderwidth => 2,-relief => 'groove'
+                       )->pack(-side=>'top',-padx=>5,-pady=>5,-fill=>'x');
+
+      my $frmult31 = $frmult3->Frame(
+                      )->pack(-side=>'top',-padx=>5,-pady=>5,-fill=>'x');
+
+      $frmult31->Label( -justify => 'left',
+                        -text => "threading model: \n".
+                                  ( $mce                                    ?
+                                    'MCE::Hobo '.$MCE::Hobo::VERSION."\n".
+                                    'MCE::Shared '.$MCE::Shared::VERSION    :
+                                    'threads '.$threads::VERSION."\n".
+                                    'Thread::Queue '.$Thread::Queue::VERSION.' '.
+                                    "(stack size: ".2 ** $stack_size.")"
+                                    ),
+                      )->pack(-side=>'left',-padx=>5);
+      # apply frame
+      my $frmultlast = $advw->Frame(
+                      )->pack(-side=>'top',-padx=>5,-pady=>5,-fill=>'x');
+      my $apply_b = $frmultlast->Button(
+                                    -text => 'Apply',
+                                    -command => sub{
+                                                    &update_options($mw,$read,
+                                                                    $write,
                                                                     $last_update
-                                                                    );$advw->destroy },
+                                                                    );
+                                                    $advw->destroy
+                                    },
                                    -underline => 0,
                                   )->pack();
     $advw->bind('<Alt-a>', sub { $apply_b->invoke });
 }
-###################################
+
+
 sub update_options{
     my $mw = shift;
     my ($read ,$write,$last_update)=@_;
     $mw->optionAdd('*font', "$font_name $char_size");
-    #$mw->update;
     foreach my $part ($read ,$write,$last_update){
         $part->configure( -font=> $mw->fontCreate(
                            -family =>  $font_name,
@@ -658,8 +692,6 @@ sub update_options{
     $read->tagConfigure(private => -foreground => $private_color);
     $read->tagConfigure(seen    => -foreground => $seen_color);
     $read->tagConfigure(time    => -foreground => $time_color);
-
-
 }
 =head1 NAME
 
