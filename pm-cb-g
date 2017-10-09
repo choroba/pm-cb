@@ -269,9 +269,13 @@ sub gui {
 
     my $balloon = $mw->Balloon;
 
-    my $last_update_f = $mw->Frame->pack;
-    my $last_update = $last_update_f->Label(-text => 'No update yet')
-        ->pack(-side => 'left');
+    my $last_update_f = $mw->Frame->pack(-expand => 1, -fill => 'x');;
+    my $last_update = $last_update_f->Label(
+                                             -justify => 'center',
+                                             -text => 'No update yet'
+                                             )
+        ->pack(-expand => 1, -fill => 'x');
+
 
     my $write_f = $mw->Frame->pack(-fill => 'x');
     my $write   = $write_f->Text(-height     => 3,
@@ -430,7 +434,7 @@ sub update_options {
                                   -family => $font_name,
                                   -size   => $char_size,
                                   ),
-                         (-bg  => $bg_color) x ($last_update != $part),
+                         -bg  => $bg_color,
                          -fg   => $fg_color,
         );
     }
