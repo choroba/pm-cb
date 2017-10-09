@@ -407,12 +407,13 @@ sub show_options {
 
     my $cancel_b = $button_f->Button(
         -text => 'Cancel',
-        -command => sub {
+        -command => my $cancel_s = sub {
             $opt_w->destroy;
             $opt_b->configure(-state => 'normal');
         },
     )->pack(-side => 'left');
-    $opt_w->bind('<Escape>', sub { $cancel_b->invoke });
+    $opt_w->bind('<Escape>', $cancel_s);
+    $opt_w->protocol(WM_DELETE_WINDOW => $cancel_s);
 }
 
 
