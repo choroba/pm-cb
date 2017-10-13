@@ -354,7 +354,13 @@ sub show_options {
     my ($mw, $read, $write, $last_update, $opt_b) = @_;
     $opt_b->configure(-state => 'disabled');
     my $opt_w = $mw->Toplevel(-title => TITLE . ' Options');
-
+    $opt_w->protocol(WM_DELETE_WINDOW =>
+                        sub {
+                              $opt_b->configure(-state => 'active');
+                              $opt_w->destroy();
+                        }
+    );
+    
     my $opt_f = $opt_w->Frame(-relief => 'groove', -borderwidth => 2)
         ->pack(-padx => 5, -pady => 5);
 
