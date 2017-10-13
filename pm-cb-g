@@ -270,8 +270,9 @@ sub gui {
     my $balloon = $mw->Balloon;
 
     my $last_update_f = $mw->Frame->pack;
-    my $last_update = $last_update_f->Label(-text => 'No update yet')
-        ->pack(-side => 'left');
+    my $last_update = $last_update_f->Label(-text       => 'No update yet',
+                                            -foreground => 'black',
+                                           )->pack(-side => 'left');
 
     my $write_f = $mw->Frame->pack(-fill => 'x');
     my $write   = $write_f->Text(-height     => 3,
@@ -425,8 +426,8 @@ sub update_options {
                                   -family => $font_name,
                                   -size   => $char_size,
                                   ),
-                         (-bg  => $bg_color) x ($last_update != $part),
-                         -fg   => $fg_color,
+                         (-bg  => $bg_color,
+                          -fg  => $fg_color) x ($last_update != $part),
         );
     }
     $read->tagConfigure(author  => -foreground => $author_color);
