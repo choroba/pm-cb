@@ -524,6 +524,7 @@ sub show {
     $column += (3 + length($timestamp)) * ! $no_time + 4 + length $author;
     $text->insert(end => "$message\n", ['unseen']);
 
+    my $fix_length = 0;
     while ($message =~ m{\[(\s*(?:
                                  https?
                                  | (?:meta)?mod | doc
@@ -531,11 +532,13 @@ sub show {
                                  | wp
                                )://.+?\s*)\]}gx
     ) {
-        my ($url, $name) = split /\|/, $1;
+        my $orig = $1;
+        my ($url, $name) = split /\|/, $orig;
         my $from = $line . '.'
                  . ($column + pos($message)
-                 - length(length $name ? "[$url|$name]" : "[$url]"));
-        my $to = $line . '.' . ($column + pos $message);
+                    - length(length $name ? "[$url|$name]" : "[$url]")
+                    - $fix_length);
+        my $to = $line . '.' . ($column - $fix_length + pos $message);
         $text->delete($from, $to);
 
         $name = $url unless length $name;
@@ -551,6 +554,8 @@ sub show {
             $url = PM_BROWSE_URL . $id;
             $tag = "browse:$id|$name";
         }
+
+        $fix_length += length($orig) - length($name);
 
         $text->tagConfigure($tag => -underline => 1);
         $text->insert($from, "[$name]", [$tag]);
