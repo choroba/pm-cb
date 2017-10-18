@@ -1,11 +1,10 @@
 # BEGIN
 
-on configure => sub {
+on build => sub {
     if ( `perl -V` =~ /useithreads=undef/ ) {
         requires 'MCE::Hobo';
         requires 'MCE::Shared';
     } else {
-        requires 'Thread::Queue';
         suggests 'MCE::Hobo';
         suggests 'MCE::Shared';
     };
