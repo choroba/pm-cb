@@ -1,7 +1,8 @@
 # BEGIN
+use Config;
 
 on build => sub {
-    if ( `perl -V` =~ /useithreads=undef/ ) {
+    if ( ! $Config{'usethreads'} ) {
         requires 'MCE::Hobo';
         requires 'MCE::Shared';
     } else {
