@@ -1,14 +1,15 @@
-# BEGIN
-use Config;
+# cpanfile
 
 on build => sub {
-    if ( ! $Config{'usethreads'} ) {
-        requires 'MCE::Hobo';
-        requires 'MCE::Shared';
-    } else {
+    my $does_threads = eval { require threads; 1 };
+
+    if ( $does_threads ) {
         suggests 'MCE::Hobo';
         suggests 'MCE::Shared';
-    };
+    } else {
+        requires 'MCE::Hobo';
+        requires 'MCE::Shared';
+    }
 };
 
 requires 'Time::HiRes';
