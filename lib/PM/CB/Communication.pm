@@ -35,7 +35,7 @@ sub communicate {
     my ($message, $command);
     my %dispatch = (
         login => sub { $self->login(@$message)
-                           or $self->{readQ}->enqueue(['login']) },
+                           or $self->{to_gui}->enqueue(['login']) },
         send  => sub { $message->[0] =~ tr/\x00-\x20/ /s;
                        $self->send_message($message->[0]) },
         title => sub { $self->get_title(@$message) },
@@ -43,7 +43,7 @@ sub communicate {
     );
 
     while (1) {
-        if ($message = $self->{writeQ}->dequeue_nb) {
+        if ($message = $self->{from_gui}->dequeue_nb) {
             $command = shift @$message;
             $dispatch{$command}->();
         }
@@ -69,14 +69,14 @@ sub communicate {
             for my $message (@messages) {
                 my $id = $message->findvalue('message_id');
                 if (! exists $seen{$id}) {
-                    $self->{readQ}->enqueue([
+                    $self->{to_gui}->enqueue([
                         chat => $time,
                                 $message->findvalue('author'),
                                 $message->findvalue('text') ]);
                     undef $seen{$id};
                 }
             }
-            $self->{readQ}->enqueue([ time => $time, !! @messages ]);
+            $self->{to_gui}->enqueue([ time => $time, !! @messages ]);
 
             my $new_from_id = $xml->findvalue(
                 '/chatter/message[last()]/message_id');
@@ -87,7 +87,7 @@ sub communicate {
 
         my @private = $self->get_all_private(\%seen);
         for my $msg (@private) {
-            $self->{readQ}->enqueue([
+            $self->{to_gui}->enqueue([
                 private => @$msg{qw{ author time text }}
             ]) unless exists $seen{"p$msg->{id}"};
             undef $seen{"p$msg->{id}"};
@@ -111,7 +111,7 @@ sub communicate {
 
             $titles{$id} = $title = $dom->findvalue('/node/@title');
         }
-        $self->{readQ}->enqueue(['title', $id, $name, $title]);
+        $self->{to_gui}->enqueue(['title', $id, $name, $title]);
     }
 }
 
@@ -145,7 +145,7 @@ sub send_message {
                        message => $msg }
     );
     my $content = $response->content;
-    $self->{readQ}->enqueue([ private => '<pm-cb-g>', undef, $content ])
+    $self->{to_gui}->enqueue([ private => '<pm-cb-g>', undef, $content ])
         unless $content =~ /^Chatter accepted/;
 }
 

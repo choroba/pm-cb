@@ -63,7 +63,7 @@ sub gui {
     my $button_f = $mw->Frame->pack;
     my $send_b = $button_f->Button(-text => 'Send',
                                    -command => sub {
-                                       $self->{writeQ}->enqueue(
+                                       $self->{to_comm}->enqueue(
                                            [ send => $write->Contents ]);
                                        $write->Contents(q());
                                    }
@@ -114,7 +114,7 @@ sub gui {
                              $self->increment_unread; },
             title   => sub { $self->show_title(@$msg) },
         );
-        while ($msg = $self->{readQ}->dequeue_nb) {
+        while ($msg = $self->{from_comm}->dequeue_nb) {
             my $type = shift @$msg;
             $dispatch{$type}->();
         }
@@ -357,7 +357,7 @@ sub show {
 
 sub ask_title {
     my ($self, $id, $name) = @_;
-    $self->{writeQ}->enqueue(['title', $id, $name]);
+    $self->{to_comm}->enqueue(['title', $id, $name]);
 }
 
 
@@ -424,7 +424,7 @@ sub update_time {
 {   my ($login, $password);
     sub send_login {
         my ($self) = @_;
-        $self->{writeQ}->enqueue([ 'login', $login, $password ]);
+        $self->{to_comm}->enqueue([ 'login', $login, $password ]);
     }
 
     sub login_dialog {
@@ -470,7 +470,7 @@ sub update_time {
 
 sub quit {
     my ($self) = @_;
-    $self->{writeQ}->enqueue(['quit']);
+    $self->{to_comm}->enqueue(['quit']);
     $self->{communicate_t}->join;
     Tk::exit();
 }

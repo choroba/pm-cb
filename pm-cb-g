@@ -50,30 +50,30 @@ my ($queue_class, $queue_constructor, $worker_class, $running)
     : ('Thread::Queue', 'new', 'threads',
        sub { $_[0]->list(threads::running())});
 
-my ($readQ, $writeQ) = map $queue_class->$queue_constructor, 1, 2;
+my ($comm2gui, $gui2comm) = map $queue_class->$queue_constructor, 1, 2;
 my $communicate_t = $worker_class->create(sub {
-    my $communication = PM::CB::Communication->new({readQ  => $readQ,
-                                                    writeQ => $writeQ});
+    my $communication = PM::CB::Communication->new({to_gui   => $comm2gui,
+                                                    from_gui => $gui2comm});
     $communication->communicate;
 });
 
 my $gui = 'PM::CB::GUI'->new({
-    bg_color => $bg_color,
-    fg_color => $fg_color,
-    author_color => $author_color,
+    bg_color      => $bg_color,
+    fg_color      => $fg_color,
+    author_color  => $author_color,
     private_color => $private_color,
-    time_color => $time_color,
-    font_name => $font_name,
-    char_size => $char_size,
-    stack_size => $stack_size,
-    seen_color => $seen_color,
-    mce => $mce,
-    no_time => $no_time,
-    readQ => $readQ,
-    writeQ => $writeQ,
+    time_color    => $time_color,
+    font_name     => $font_name,
+    char_size     => $char_size,
+    stack_size    => $stack_size,
+    seen_color    => $seen_color,
+    mce           => $mce,
+    no_time       => $no_time,
+    from_comm     => $comm2gui,
+    to_comm       => $gui2comm,
     communicate_t => $communicate_t,
-    worker_class => $worker_class,
-    running => $running});
+    worker_class  => $worker_class,
+    running       => $running});
 $gui->gui;
 
 
