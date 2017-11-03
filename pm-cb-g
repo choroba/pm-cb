@@ -9,7 +9,7 @@ use Getopt::Long qw( :config no_ignore_case );
 use Pod::Usage;
 
 use PM::CB::GUI;
-use PM::CB::Communication;
+use PM::CB::Control;
 
 my ($bg_color, $fg_color, $author_color, $private_color, $time_color,
     $font_name, $char_size, $stack_size, $seen_color, $mce, $no_time, $help);
@@ -50,11 +50,15 @@ my ($queue_class, $queue_constructor, $worker_class, $running)
     : ('Thread::Queue', 'new', 'threads',
        sub { $_[0]->list(threads::running())});
 
-my ($comm2gui, $gui2comm) = map $queue_class->$queue_constructor, 1, 2;
-my $communicate_t = $worker_class->create(sub {
-    my $communication = PM::CB::Communication->new({to_gui   => $comm2gui,
-                                                    from_gui => $gui2comm});
-    $communication->communicate;
+my ($to_gui, $to_comm, $to_control)
+    = map $queue_class->$queue_constructor, 1, 2, 3;
+my $control_t = $worker_class->create(sub {
+    my $control = PM::CB::Control->new({to_gui       => $to_gui,
+                                        to_comm      => $to_comm,
+                                        from_gui     => $to_control,
+                                        worker_class => $worker_class,
+                                        running      => $running});
+    $control->start_comm;
 });
 
 my $gui = 'PM::CB::GUI'->new({
@@ -69,11 +73,10 @@ my $gui = 'PM::CB::GUI'->new({
     seen_color    => $seen_color,
     mce           => $mce,
     no_time       => $no_time,
-    from_comm     => $comm2gui,
-    to_comm       => $gui2comm,
-    communicate_t => $communicate_t,
-    worker_class  => $worker_class,
-    running       => $running});
+    from_comm     => $to_gui,
+    to_comm       => $to_comm,
+    to_control    => $to_control,
+    control_t     => $control_t});
 $gui->gui;
 
 

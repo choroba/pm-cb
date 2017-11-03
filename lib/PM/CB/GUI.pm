@@ -105,22 +105,23 @@ sub gui {
     $mw->repeat(1000, sub {
         my $msg;
         my %dispatch = (
-            time    => sub { $self->update_time($msg->[0], $tzoffset,
-                                                $msg->[1]) },
-            login   => sub { $self->login_dialog },
-            chat    => sub { $self->show_message($tzoffset, @$msg);
-                             $self->increment_unread; },
-            private => sub { $self->show_private(@$msg, $tzoffset);
-                             $self->increment_unread; },
-            title   => sub { $self->show_title(@$msg) },
+            time       => sub { $self->update_time($msg->[0], $tzoffset,
+                                                   $msg->[1]) },
+            login      => sub { $self->login_dialog },
+            chat       => sub { $self->show_message($tzoffset, @$msg);
+                                $self->increment_unread; },
+            private    => sub { $self->show_private(@$msg, $tzoffset);
+                                $self->increment_unread; },
+            title      => sub { $self->show_title(@$msg) },
+            send_login => sub { $self->send_login },
+            quit       => sub { $self->{control_t}->join; Tk::exit() },
+
         );
         while ($msg = $self->{from_comm}->dequeue_nb) {
             my $type = shift @$msg;
             $dispatch{$type}->();
         }
     });
-
-    # $mw->repeat(5000, sub { $self->heartbeat });
 
     $mw->after(1, sub { $self->login_dialog; $self->{write}->focus; });
 
@@ -447,7 +448,10 @@ sub update_time {
         my $password_e = $password_f->Entry(-show => '*')->pack(-side => 'right');
 
         my $reply = $dialog->Show;
-        $self->quit if 'Cancel' eq $reply;
+        if ('Cancel' eq $reply) {
+            $self->quit;
+            return
+        }
 
         ($login, $password) = ($username_e->get, $password_e->get);
         $self->send_login;
@@ -455,24 +459,10 @@ sub update_time {
 }
 
 
-# sub heartbeat {
-#     my ($self) = @_;
-
-#     my $ok = $self->{worker_class}->$self->{running};
-#     unless ($ok) {
-#         warn "Restarting worker...\n";
-#         eval { $self->{communicate_t}->join };
-#         $self->{communicate_t} = $self->{worker_class}->create(\&communicate);
-#         send_login();
-#     }
-# }
-
-
 sub quit {
     my ($self) = @_;
-    $self->{to_comm}->enqueue(['quit']);
-    $self->{communicate_t}->join;
-    Tk::exit();
+    print STDERR "Quitting...\n";
+    $self->{to_control}->enqueue(['quit']);
 }
 
 
