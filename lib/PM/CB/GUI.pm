@@ -72,8 +72,8 @@ sub gui {
                             $send_b->invoke }
     ) for qw( Return KP_Enter );
 
-    my $seen_b = $button_f->Button(-text => 'Seen',
-                                   -command => sub { $self->seen },
+    my $seen_b = $button_f->Button(-text      => 'Seen',
+                                   -command   => sub { $self->seen },
                                    -underline => 0,
                                   )->pack(-side => 'left');
     $mw->bind('<Alt-s>', sub { $seen_b->invoke });
@@ -94,8 +94,8 @@ sub gui {
     )->pack(-side => 'left');
     $mw->bind('<Alt-o>', sub { $opt_b->invoke });
 
-    my $quit_b = $button_f->Button(-text => 'Quit',
-                                   -command => sub { $self->quit },
+    my $quit_b = $button_f->Button(-text      => 'Quit',
+                                   -command   => sub { $self->quit },
                                    -underline => 0,
                                   )->pack(-side => 'left');
     $mw->bind('<Alt-q>', sub { $quit_b->invoke });
@@ -176,13 +176,13 @@ sub show_options {
 
     my $button_f = $opt_w->Frame->pack(-padx => 5, -pady => 5);
     my $apply_b = $button_f->Button(
-        -text => 'Apply',
-        -command => sub{
+        -text      => 'Apply',
+        -underline => 0,
+        -command   => sub{
             $self->update_options($show_time);
             $opt_w->destroy;
             $self->{opt_b}->configure(-state => 'normal');
         },
-        -underline => 0,
     )->pack(-side => 'left');
     $opt_w->bind('<Alt-a>', sub { $apply_b->invoke });
 
