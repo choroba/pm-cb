@@ -27,9 +27,9 @@ sub start_comm {
         sleep 1;
         $self->heartbeat;
     }
-    $self->{to_comm}->enqueue(['quit']);
+    $self->{to_comm}->insert(0, ['quit']);
     $self->{communicate_t}->join;
-    $self->{to_gui}->enqueue(['quit']);
+    $self->{to_gui}->insert(0, ['quit']);
 }
 
 

@@ -462,7 +462,7 @@ sub update_time {
 sub quit {
     my ($self) = @_;
     print STDERR "Quitting...\n";
-    $self->{to_control}->enqueue(['quit']);
+    $self->{to_control}->insert(0, ['quit']);
 }
 
 
