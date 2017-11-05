@@ -44,11 +44,10 @@ use if $mce => 'MCE::Shared';
 use if ! $mce => threads => (stack_size => 2 ** $stack_size);
 use if ! $mce => 'Thread::Queue';
 
-my ($queue_class, $queue_constructor, $worker_class, $running)
+my ($queue_class, $queue_constructor, $worker_class)
     = $mce
-    ? ('MCE::Shared', 'queue', 'MCE::Hobo', sub { $_[0]->list_running} )
-    : ('Thread::Queue', 'new', 'threads',
-       sub { $_[0]->list(threads::running())});
+    ? ('MCE::Shared', 'queue', 'MCE::Hobo')
+    : ('Thread::Queue', 'new', 'threads');
 
 my ($to_gui, $to_comm, $to_control)
     = map $queue_class->$queue_constructor, 1, 2, 3;
@@ -56,8 +55,7 @@ my $control_t = $worker_class->create(sub {
     my $control = PM::CB::Control->new({to_gui       => $to_gui,
                                         to_comm      => $to_comm,
                                         from_gui     => $to_control,
-                                        worker_class => $worker_class,
-                                        running      => $running});
+                                        worker_class => $worker_class});
     $control->start_comm;
 });
 
