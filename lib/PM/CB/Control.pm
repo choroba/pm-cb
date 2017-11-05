@@ -38,7 +38,7 @@ sub heartbeat {
 
     my $running = $self->{running};
     my $ok = $self->{worker_class}->$running;
-    unless (2 == $ok) {
+    unless (defined $ok && 2 == $ok) {
         warn "Restarting worker...\n";
         eval { $self->{communicate_t}->join };
         $self->start_comm;
