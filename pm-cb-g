@@ -14,14 +14,14 @@ use PM::CB::Control;
 
 my ($bg_color, $fg_color, $author_color, $private_color, $time_color,
     $font_name, $char_size, $stack_size, $seen_color, $mce, $no_time, $help,
-    $pm_url, $browse_url);
+    $pm_url, $browse_url, $random_url);
 
 BEGIN {
     ($bg_color, $fg_color, $author_color, $private_color, $time_color,
-     $seen_color, $font_name, $char_size, $stack_size, $mce, $no_time, $help,
-     $pm_url)
-    = qw( white black blue magenta darkcyan darkgray Helvetica 12 15 0 0 0
-          www.perlmonks.org );
+     $seen_color, $font_name, $char_size, $stack_size, $mce, $no_time,
+     $help, $pm_url, $random_url)
+    = qw( white black blue magenta darkcyan darkgray Helvetica 12 15 0 0
+          0 www.perlmonks.org 0 );
 
     GetOptions(
         'a|author_color=s'  => \$author_color,
@@ -33,6 +33,7 @@ BEGIN {
         'm|mce'             => \$mce,
         'n|no_time'         => \$no_time,
         'p|private_color=s' => \$private_color,
+        'r|random_url'      => \$random_url,
         's|stack_size=i'    => \$stack_size,
         'S|seen_color=s'    => \$seen_color,
         't|time_color=s'    => \$time_color,
@@ -63,7 +64,8 @@ my $control_t = $worker_class->create(sub {
                                         to_comm      => $to_comm,
                                         from_gui     => $to_control,
                                         worker_class => $worker_class,
-                                        pm_url       => $pm_url});
+                                        pm_url       => $pm_url,
+                                        random_url   => $random_url});
     $control->start_comm;
 });
 
@@ -83,7 +85,8 @@ my $gui = 'PM::CB::GUI'->new({
     to_comm       => $to_comm,
     to_control    => $to_control,
     control_t     => $control_t,
-    browse_url    => $browse_url});
+    browse_url    => $browse_url,
+    random_url    => $random_url});
 $gui->gui;
 
 
@@ -140,6 +143,10 @@ Don't show time stamps.
 =item B<p|private_color> I<color>
 
 The color for the authors of private messages.
+
+=item B<r|random_url>
+
+Change the PM URL randomly time to time (should prevent lag).
 
 =item B<s|stack_size> I<size>
 

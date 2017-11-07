@@ -101,8 +101,9 @@ sub communicate {
 
 sub handle_url {
     my ($self, @message) = @_;
-    if (@message) {
+    if (@message && $message[0] ne $self->{pm_url}) {
         $self->{pm_url} = $message[0];
+        $self->{to_gui}->enqueue(['send_login']);
     } else {
         $self->{to_gui}->enqueue(['url', $self->{pm_url}]);
     }

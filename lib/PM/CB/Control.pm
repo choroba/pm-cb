@@ -22,15 +22,34 @@ sub start_comm {
         });
         $communication->communicate;
     });
+
+    my $counter = 10;
     while (1) {
         my $msg = $self->{from_gui}->dequeue_nb;
         last if $msg && 'quit' eq $msg->[0];
+
+
+        if ($msg) {
+            { random_url => sub { warn "@$msg\n"; $self->{random_url} = $msg->[1] }
+            }->{$msg->[0]}->();
+        }
+
         sleep 1;
         $self->heartbeat;
+        if ($self->{random_url} && ! $counter--) {
+            $counter = 10;
+            $self->{to_comm}->enqueue(['url', random_url()]);
+            $self->{to_comm}->enqueue(['url']);
+        };
     }
     $self->{to_comm}->insert(0, ['quit']);
     $self->{communicate_t}->join;
     $self->{to_gui}->insert(0, ['quit']);
+}
+
+
+sub random_url {
+    (map +( $_, "www.$_" ), map "perlmonks.$_", qw( org net com ))[rand 6]
 }
 
 

@@ -2,6 +2,7 @@ package PM::CB::GUI;
 
 use warnings;
 use strict;
+use Syntax::Construct qw{ // };
 
 
 use constant TITLE => 'PM::CB::G';
@@ -145,7 +146,8 @@ sub show_options {
     $self->{opt_b}->configure(-state => 'disabled');
     my $opt_w = $self->{mw}->Toplevel(-title => TITLE . ' Options');
 
-    $self->{to_comm}->enqueue(['url']) unless exists $self->{pm_url};
+    $self->{to_comm}->enqueue(['url'])
+        if $self->{random_url} || ! exists $self->{pm_url};
 
     my $opt_f = $opt_w->Frame(-relief => 'groove', -borderwidth => 2)
         ->pack(-padx => 5, -pady => 5);
@@ -171,10 +173,20 @@ sub show_options {
         )->pack(-side => 'right');
     }
 
-    my $old_url = $self->{pm_url};
+    my $old_url = $self->{pm_url} // q();
     my $f = $opt_f->Frame->pack(-fill => 'x');
     $f->Label(-text => 'PerlMonks URL')->pack(-side => 'left');
-    $f->Entry(-textvariable => \$self->{pm_url})
+    my $e;
+    $f->Checkbutton(
+        -variable => \$self->{random_url},
+        -text     => 'Random',
+        -command  => sub {
+            $e->configure(-state => $self->{random_url}
+                                    ? 'disabled' : 'normal' )
+        }
+    )->pack(-side => 'left');
+    $e = $f->Entry(-textvariable => \$self->{pm_url},
+              -state => $self->{random_url} ? 'disabled' : 'normal')
         ->pack(-side => 'right');
 
     my $time_f = $opt_f->Frame->pack(-fill => 'x');
@@ -225,6 +237,7 @@ sub show_options {
 sub update_options {
     my ($self, $show_time, $new) = @_;
 
+    my $old_url = $self->{pm_url};
     for my $opt (keys %$new) {
         $self->{$opt} = $new->{$opt} if ! exists $self->{$opt}
                                      || $self->{$opt} ne $new->{$opt};
@@ -247,8 +260,12 @@ sub update_options {
     $self->{read}->tagConfigure(
         private => -foreground => $self->{private_color});
     $self->{no_time} = ! $show_time;
-    $self->{to_comm}->enqueue(['url', $self->{pm_url}]);
-    $self->send_login;
+
+    $self->{to_control}->enqueue(['random_url', $self->{random_url}]);
+    if ($old_url ne $self->{pm_url}) {
+        $self->{to_comm}->enqueue(['url', $self->{pm_url}]);
+        $self->send_login;
+    }
 }
 
 
