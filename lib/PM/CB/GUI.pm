@@ -160,15 +160,22 @@ sub show_options {
         [ 'Timestamp Color'  => 'time_color' ],
         [ 'Seen Color'       => 'seen_color' ],
         [ 'Browser URL'      => 'browse_url' ],
-        [ 'PerlMonks URL'    => 'pm_url' ],
     );
 
+    my $new;
     for my $opt (@opts) {
         my $f = $opt_f->Frame->pack(-fill => 'x');
         $f->Label(-text => $opt->[0])->pack(-side => 'left');
-        $f->Entry(-textvariable => \$self->{ $opt->[1] })
-            ->pack(-side => 'right');
+        $f->Entry(
+            -textvariable => \($new->{ $opt->[1] } = $self->{ $opt->[1] })
+        )->pack(-side => 'right');
     }
+
+    my $old_url = $self->{pm_url};
+    my $f = $opt_f->Frame->pack(-fill => 'x');
+    $f->Label(-text => 'PerlMonks URL')->pack(-side => 'left');
+    $f->Entry(-textvariable => \$self->{pm_url})
+        ->pack(-side => 'right');
 
     my $time_f = $opt_f->Frame->pack(-fill => 'x');
     $opt_f->Label(-text => 'Show Timestamps')->pack(-side => 'left');
@@ -194,7 +201,8 @@ sub show_options {
         -text      => 'Apply',
         -underline => 0,
         -command   => sub{
-            $self->update_options($show_time);
+            $new->{pm_url} = $self->{pm_url} if $self->{pm_url} ne $old_url;
+            $self->update_options($show_time, $new);
             $opt_w->destroy;
             $self->{opt_b}->configure(-state => 'normal');
         },
@@ -204,6 +212,7 @@ sub show_options {
     my $cancel_b = $button_f->Button(
         -text => 'Cancel',
         -command => my $cancel_s = sub {
+            $self->{pm_url} = $old_url;
             $opt_w->destroy;
             $self->{opt_b}->configure(-state => 'normal');
         },
@@ -214,7 +223,13 @@ sub show_options {
 
 
 sub update_options {
-    my ($self, $show_time) = @_;
+    my ($self, $show_time, $new) = @_;
+
+    for my $opt (keys %$new) {
+        $self->{$opt} = $new->{$opt} if ! exists $self->{$opt}
+                                     || $self->{$opt} ne $new->{$opt};
+    }
+
     $self->{mw}->optionAdd('*font', "$self->{font_name} $self->{char_size}");
     for my $part (qw( read write last_update )) {
         $self->{$part}->configure(
