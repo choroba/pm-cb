@@ -12,6 +12,7 @@ on build => sub {
     }
 };
 
+requires 'Syntax::Construct';
 requires 'Time::HiRes';
 requires 'Tk';
 requires 'WWW::Mechanize';
