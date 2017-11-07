@@ -30,7 +30,7 @@ sub start_comm {
 
 
         if ($msg) {
-            { random_url => sub { warn "@$msg\n"; $self->{random_url} = $msg->[1] }
+            { random_url => sub { $self->{random_url} = $msg->[1] }
             }->{$msg->[0]}->();
         }
 
