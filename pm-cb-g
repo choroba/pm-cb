@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 use warnings;
 use strict;
+use Syntax::Construct qw{ // };
 
 use FindBin;
 use lib "$FindBin::Bin/lib";
@@ -12,12 +13,15 @@ use PM::CB::GUI;
 use PM::CB::Control;
 
 my ($bg_color, $fg_color, $author_color, $private_color, $time_color,
-    $font_name, $char_size, $stack_size, $seen_color, $mce, $no_time, $help);
+    $font_name, $char_size, $stack_size, $seen_color, $mce, $no_time, $help,
+    $pm_url, $browse_url);
 
 BEGIN {
     ($bg_color, $fg_color, $author_color, $private_color, $time_color,
-     $seen_color, $font_name, $char_size, $stack_size, $mce, $no_time, $help)
-    = qw( white black blue magenta darkcyan darkgray Helvetica 12 15 0 0 0);
+     $seen_color, $font_name, $char_size, $stack_size, $mce, $no_time, $help,
+     $pm_url)
+    = qw( white black blue magenta darkcyan darkgray Helvetica 12 15 0 0 0
+          www.perlmonks.org );
 
     GetOptions(
         'a|author_color=s'  => \$author_color,
@@ -32,7 +36,10 @@ BEGIN {
         's|stack_size=i'    => \$stack_size,
         'S|seen_color=s'    => \$seen_color,
         't|time_color=s'    => \$time_color,
+        'u|url=s'           => \$pm_url,
+        'U|browse_url=s'    => \$browse_url,
     ) or pod2usage(-verbose => 0, -exitval => 1);
+    $browse_url //= $pm_url;
 
     pod2usage(-verbose => 1, -exitval => 0) if $help;
 }
@@ -55,7 +62,8 @@ my $control_t = $worker_class->create(sub {
     my $control = PM::CB::Control->new({to_gui       => $to_gui,
                                         to_comm      => $to_comm,
                                         from_gui     => $to_control,
-                                        worker_class => $worker_class});
+                                        worker_class => $worker_class,
+                                        pm_url       => $pm_url});
     $control->start_comm;
 });
 
@@ -74,7 +82,8 @@ my $gui = 'PM::CB::GUI'->new({
     from_comm     => $to_gui,
     to_comm       => $to_comm,
     to_control    => $to_control,
-    control_t     => $control_t});
+    control_t     => $control_t,
+    browse_url    => $browse_url});
 $gui->gui;
 
 
@@ -85,7 +94,8 @@ pm-cb-g - A GUI client to PerlMonks' Chatter Box
 =head1 SYNOPSIS
 
   pm-cb-g -a blue -b white -c 12 -f black -F Helvetica
-          -p magenta -s 15 -S darkgray -t darkcyan [ -h -m -n ]
+          -p magenta -s 15 -S darkgray -t darkcyan
+          -u www.perlmonks.org -U www.perlmonks.org [ -h -m -n ]
 
 =head1 OPTIONS
 
@@ -143,5 +153,14 @@ The color for already read messages.
 =item B<t|time_color> I<color>
 
 The color for time stamps.
+
+=item B<u|url> I<[www.]perlmonks.(com|net|org)>
+
+The address to use to communicate with PerlMonks.
+
+=item B<u|browse_url> I<[www.]perlmonks.(com|net|org)>
+
+The address to use to open PerlMonks links in the browser. Same as
+B<url> if not specified.
 
 =back

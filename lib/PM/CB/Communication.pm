@@ -4,7 +4,6 @@ use warnings;
 use strict;
 
 use constant {
-    PM_URL        => 'http://www.perlmonks.org/bare/?node_id=',
     FREQ          => 7,
     # Node ids:
     LOGIN         => 109,
@@ -18,6 +17,9 @@ sub new {
     my ($class, $struct) = @_;
     bless $struct, $class
 }
+
+
+sub url { "http://$_[0]{pm_url}/bare/?node_id=" }
 
 
 sub communicate {
@@ -39,6 +41,7 @@ sub communicate {
         send  => sub { $message->[0] =~ tr/\x00-\x20/ /s;
                        $self->send_message($message->[0]) },
         title => sub { $self->get_title(@$message) },
+        url   => sub { $self->handle_url(@$message) },
         quit  => sub { no warnings 'exiting'; last },
     );
 
@@ -53,7 +56,7 @@ sub communicate {
 
         $last_update = time;
 
-        my $url = PM_URL . CB;
+        my $url = $self->url . CB;
         $url .= ";fromid=$from_id" if defined $from_id;
         $mech->get($url);
 
@@ -96,12 +99,22 @@ sub communicate {
 }
 
 
+sub handle_url {
+    my ($self, @message) = @_;
+    if (@message) {
+        $self->{pm_url} = $message[0];
+    } else {
+        $self->{to_gui}->enqueue(['url', $self->{pm_url}]);
+    }
+}
+
+
 {   my %titles;
     sub get_title {
         my ($self, $id, $name) = @_;
         my $title = $titles{$id};
         unless (defined $title) {
-            my $url = PM_URL . $id;
+            my $url = $self->url . $id;
             require XML::LibXML;
             $self->{mech}->get($url . ';displaytype=xml');
             my $dom;
@@ -118,7 +131,7 @@ sub communicate {
 
 sub login {
     my ($self, $username, $password) = @_;
-    my $response = $self->{mech}->get(PM_URL . LOGIN);
+    my $response = $self->{mech}->get($self->url . LOGIN);
     if ($response->is_success) {
         $self->{mech}->submit_form(
             form_number => 1,
@@ -139,7 +152,7 @@ sub send_message {
     ( my $msg = $message )
         =~ s/(.)/ord $1 > 127 ? '&#' . ord($1) . ';' : $1/ge;
     my $response = $self->{mech}->post(
-        PM_URL . SEND,
+        $self->url . SEND,
         Content   => { op      => 'message',
                        node    => SEND,
                        message => $msg }
@@ -153,7 +166,7 @@ sub send_message {
 sub get_all_private {
     my ($self, $seen) = @_;
 
-    my $url = PM_URL . PRIVATE;
+    my $url = $self->url . PRIVATE;
 
     my ($max, @private);
   ALL:
@@ -181,7 +194,7 @@ sub get_all_private {
         }
 
         my $first = $messages[0]->findvalue('@message_id');
-        $url = PM_URL . PRIVATE . "&prior_to=$first";
+        $url = $self->url . PRIVATE . "&prior_to=$first";
     }
 
     return @private

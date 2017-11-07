@@ -18,6 +18,7 @@ sub start_comm {
         my $communication = PM::CB::Communication->new({
             to_gui   => $self->{to_gui},
             from_gui => $self->{to_comm},
+            pm_url   => $self->{pm_url},
         });
         $communication->communicate;
     });

@@ -4,15 +4,20 @@ use warnings;
 use strict;
 
 
-use constant {
-    TITLE         => 'PM::CB::G',
-    PM_BROWSE_URL => 'http://www.perlmonks.org/?node_id=',
-};
+use constant TITLE => 'PM::CB::G';
 
 
 sub new {
     my ($class, $struct) = @_;
     bless $struct, $class
+}
+
+
+sub url {
+    my ($self, $url) = @_;
+    $url //= '__PM_CB_URL__';
+    $url =~ s{__PM_CB_URL__}{http://$self->{browse_url}/?node_id=};
+    return $url
 }
 
 
@@ -119,6 +124,7 @@ sub gui {
                                 $self->increment_unread; },
             title      => sub { $self->show_title(@$msg) },
             send_login => sub { $self->send_login },
+            url        => sub { $self->{pm_url} = $msg->[0] },
             quit       => sub { $self->{control_t}->join; Tk::exit() },
 
         );
@@ -139,6 +145,8 @@ sub show_options {
     $self->{opt_b}->configure(-state => 'disabled');
     my $opt_w = $self->{mw}->Toplevel(-title => TITLE . ' Options');
 
+    $self->{to_comm}->enqueue(['url']) unless exists $self->{pm_url};
+
     my $opt_f = $opt_w->Frame(-relief => 'groove', -borderwidth => 2)
         ->pack(-padx => 5, -pady => 5);
 
@@ -151,6 +159,8 @@ sub show_options {
         [ 'Private Color'    => 'private_color' ],
         [ 'Timestamp Color'  => 'time_color' ],
         [ 'Seen Color'       => 'seen_color' ],
+        [ 'Browser URL'      => 'browse_url' ],
+        [ 'PerlMonks URL'    => 'pm_url' ],
     );
 
     for my $opt (@opts) {
@@ -222,6 +232,8 @@ sub update_options {
     $self->{read}->tagConfigure(
         private => -foreground => $self->{private_color});
     $self->{no_time} = ! $show_time;
+    $self->{to_comm}->enqueue(['url', $self->{pm_url}]);
+    $self->send_login;
 }
 
 
@@ -340,7 +352,7 @@ sub show {
         if ($url =~ m{^id://([0-9]+)}) {
             my $id = $1;
             $self->ask_title($id, $url) if $name eq $url;
-            $url = PM_BROWSE_URL . $id;
+            $url = '__PM_CB_URL__' . $id;
             $tag = "browse:$id|$name";
         }
 
@@ -351,11 +363,13 @@ sub show {
         $text->tagBind($tag, '<Enter>',
                        sub { $self->{balloon}->attach(
                            $text,
-                           -balloonmsg      => $url,
+                           -balloonmsg      => $self->url($url),
                            -state           => 'balloon',
                            -balloonposition => 'mouse') });
-        $text->tagBind($tag, '<Leave>', sub { $self->{balloon}->detach($text) });
-        $text->tagBind($tag, '<Button-1>', sub { browse($url) });
+        $text->tagBind($tag, '<Leave>',
+                       sub { $self->{balloon}->detach($text) });
+        $text->tagBind($tag, '<Button-1>',
+                       sub { browse($self->url($url)) });
     }
     $text->see('end');
 }
