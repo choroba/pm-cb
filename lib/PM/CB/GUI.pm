@@ -106,9 +106,9 @@ sub gui {
                                   )->pack(-side => 'left');
     $mw->bind('<Alt-q>', sub { $quit_b->invoke });
 
-    $mw->bind('<Page_Up>',
+    $mw->bind('<Prior>',
               sub { $self->{read}->yviewScroll(-1, 'pages')});
-    $mw->bind('<Page_Down>',
+    $mw->bind('<Next>',
               sub { $self->{read}->yviewScroll( 1, 'pages')});
 
     my ($username, $password);
