@@ -174,6 +174,7 @@ sub show_options {
     }
 
     my $old_url = $self->{pm_url} // q();
+    my $old_random = $self->{random_url};
     my $f = $opt_f->Frame->pack(-fill => 'x');
     $f->Label(-text => 'PerlMonks URL')->pack(-side => 'left');
     my $e;
@@ -225,6 +226,7 @@ sub show_options {
         -text => 'Cancel',
         -command => my $cancel_s = sub {
             $self->{pm_url} = $old_url;
+            $self->{random_url} = $old_random;
             $opt_w->destroy;
             $self->{opt_b}->configure(-state => 'normal');
         },
