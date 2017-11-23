@@ -165,7 +165,7 @@ The color for time stamps.
 
 The address to use to communicate with PerlMonks.
 
-=item B<u|browse_url> I<[www.]perlmonks.(com|net|org)>
+=item B<U|browse_url> I<[www.]perlmonks.(com|net|org)>
 
 The address to use to open PerlMonks links in the browser. Same as
 B<url> if not specified.
