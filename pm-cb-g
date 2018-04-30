@@ -12,16 +12,16 @@ use Pod::Usage;
 use PM::CB::GUI;
 use PM::CB::Control;
 
-my ($bg_color, $fg_color, $author_color, $private_color, $time_color,
-    $font_name, $char_size, $stack_size, $seen_color, $mce, $no_time, $help,
-    $pm_url, $browse_url, $random_url);
+my ($bg_color, $fg_color, $author_color, $private_color, $gesture_color,
+    $time_color, $font_name, $char_size, $stack_size, $seen_color, $mce,
+    $no_time, $help, $pm_url, $browse_url, $random_url);
 
 BEGIN {
-    ($bg_color, $fg_color, $author_color, $private_color, $time_color,
-     $seen_color, $font_name, $char_size, $stack_size, $mce, $no_time,
-     $help, $pm_url, $random_url)
-    = qw( white black blue magenta darkcyan darkgray Helvetica 12 15 0 0
-          0 www.perlmonks.org 0 );
+    ($bg_color, $fg_color, $author_color, $private_color, $gesture_color,
+     $time_color, $seen_color, $font_name, $char_size, $stack_size, $mce,
+     $no_time, $help, $pm_url, $random_url)
+    = qw( white black blue magenta darkgreen darkcyan darkgray Helvetica
+          12 15 0 0 0 www.perlmonks.org 0 );
 
     GetOptions(
         'a|author_color=s'  => \$author_color,
@@ -29,6 +29,7 @@ BEGIN {
         'c|char_size=i'     => \$char_size,
         'f|fg_color=s'      => \$fg_color,
         'F|font_name=s'     => \$font_name,
+        'g|gesture_color=s' => \$gesture_color,
         'h|help'            => \$help,
         'm|mce'             => \$mce,
         'n|no_time'         => \$no_time,
@@ -74,6 +75,7 @@ my $gui = 'PM::CB::GUI'->new({
     fg_color      => $fg_color,
     author_color  => $author_color,
     private_color => $private_color,
+    gesture_color => $gesture_color,
     time_color    => $time_color,
     font_name     => $font_name,
     char_size     => $char_size,
@@ -97,7 +99,7 @@ pm-cb-g - A GUI client to PerlMonks' Chatter Box
 =head1 SYNOPSIS
 
   pm-cb-g -a blue -b white -c 12 -f black -F Helvetica
-          -p magenta -s 15 -S darkgray -t darkcyan
+          -p magenta -s 15 -S darkgray -t darkcyan -g darkgreen
           -u www.perlmonks.org -U www.perlmonks.org [ -h -m -n ]
 
 =head1 OPTIONS
@@ -126,6 +128,10 @@ The foreground colour of the new messages.
 =item B<F|font_name> I<font>
 
 The font for all the characters.
+
+=item B<g|gesture_color> I<color>
+
+The foreground colour to display the names of gesture authors (C</me>).
 
 =item B<h|help>
 

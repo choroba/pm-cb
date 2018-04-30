@@ -5,7 +5,12 @@ use strict;
 use Syntax::Construct qw{ // };
 
 
-use constant TITLE => 'PM::CB::G';
+use constant {
+    TITLE => 'PM::CB::G',
+    PUBLIC => 0,
+    PRIVATE => 1,
+    GESTURE => 2,
+};
 
 
 sub new {
@@ -47,6 +52,7 @@ sub gui {
         ->pack(-expand => 1, -fill => 'both');
     $read->tagConfigure(author  => -foreground => $self->{author_color});
     $read->tagConfigure(private => -foreground => $self->{private_color});
+    $read->tagConfigure(gesture => -foreground => $self->{gesture_color});
     $read->tagConfigure(seen    => -foreground => $self->{seen_color});
     $read->tagConfigure(time    => -foreground => $self->{time_color});
 
@@ -159,6 +165,7 @@ sub show_options {
         [ 'Foreground Color' => 'fg_color' ],
         [ 'Author Color'     => 'author_color' ],
         [ 'Private Color'    => 'private_color' ],
+        [ 'Gesture Color'    => 'gesture_color' ],
         [ 'Timestamp Color'  => 'time_color' ],
         [ 'Seen Color'       => 'seen_color' ],
         [ 'Browser URL'      => 'browse_url' ],
@@ -347,16 +354,19 @@ sub decode {
 
 
 sub show {
-    my ($self, $timestamp, $author, $message, $private) = @_;
+    my ($self, $timestamp, $author, $message, $type) = @_;
 
     my $text = $self->{read};
     $text->insert(end => "<$timestamp> ", ['time']) unless $self->{no_time};
-    $text->insert(end => "[$author]: ",
-                  [ $private ? 'private' : 'author']);
-
+    my $author_separator = $type == GESTURE ? "" : ': ';
+    $text->insert(end => "[$author]$author_separator",
+                  { (PRIVATE) => 'private',
+                    (PUBLIC)  => 'author',
+                    (GESTURE) => 'gesture' }->{$type});
     my ($line, $column) = split /\./, $text->index('end');
     --$line;
-    $column += (3 + length($timestamp)) * ! $self->{no_time} + 4 + length $author;
+    $column += (3 + length($timestamp)) * ! $self->{no_time} + 2
+        + length($author_separator) + length $author;
     $text->insert(end => "$message\n", ['unseen']);
 
     my $fix_length = 0;
@@ -428,12 +438,13 @@ sub browse {
 sub show_message {
     my ($self, $tzoffset, $timestamp, $author, $message) = @_;
 
+    my $type = $message =~ s{^/me(?=\s|')}{} ? GESTURE : PUBLIC;
     $message = decode($message);
     $timestamp = convert_time($timestamp, $tzoffset)
                  ->strftime('%Y-%m-%d %H:%M:%S');
 
     substr $timestamp, 0, 11, q() if 0 == index $timestamp, $self->{last_date};
-    $self->show($timestamp, $author, $message, 0);
+    $self->show($timestamp, $author, $message, $type);
 }
 
 
@@ -452,7 +463,7 @@ sub show_private {
     }
     $time = $time->strftime('%Y-%m-%d %H:%M:%S');
 
-    $self->show($time, $author, $msg, 1);
+    $self->show($time, $author, $msg, PRIVATE);
 }
 
 
