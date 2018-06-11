@@ -87,6 +87,8 @@ sub communicate {
             $from_id = $new_from_id if length $new_from_id;
 
             $previous = $xml;
+        } else {
+            warn $@;
         }
 
         my @private = $self->get_all_private(\%seen);
