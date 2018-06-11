@@ -22,7 +22,7 @@ sub new {
 sub url {
     my ($self, $url) = @_;
     $url //= '__PM_CB_URL__';
-    $url =~ s{__PM_CB_URL__}{http://$self->{browse_url}/?node_id=};
+    $url =~ s{__PM_CB_URL__}{https://$self->{browse_url}/?node_id=};
     return $url
 }
 

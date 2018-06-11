@@ -14,12 +14,13 @@ use constant {
 
 
 sub new {
+    $ENV{PERL_LWP_SSL_VERIFY_HOSTNAME} = 0;
     my ($class, $struct) = @_;
     bless $struct, $class
 }
 
 
-sub url { "http://$_[0]{pm_url}/bare/?node_id=" }
+sub url { "https://$_[0]{pm_url}/bare/?node_id=" }
 
 
 sub communicate {
