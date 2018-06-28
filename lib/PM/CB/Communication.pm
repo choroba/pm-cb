@@ -10,6 +10,7 @@ use constant {
     CB            => 207304,
     SEND          => 227820,
     PRIVATE       => 15848,
+    MONKLIST      => 15851,
 };
 
 
@@ -43,6 +44,7 @@ sub communicate {
                        $self->send_message($message->[0]) },
         title => sub { $self->get_title(@$message) },
         url   => sub { $self->handle_url(@$message) },
+        list  => sub { $self->get_monklist },
         quit  => sub { no warnings 'exiting'; last },
     );
 
@@ -99,6 +101,19 @@ sub communicate {
             undef $seen{"p$msg->{id}"};
         }
     }
+}
+
+
+sub get_monklist {
+    my ($self) = @_;
+    $self->{mech}->get($self->url . MONKLIST);
+    require XML::LibXML;
+    my $dom;
+    eval {
+        $dom = 'XML::LibXML'->load_xml(string => $self->{mech}->content);
+    } or return;
+    my $names = $dom->findnodes('/CHATTER/user');
+    $self->{to_gui}->enqueue(['list', map $_->{username}, @$names]);
 }
 
 

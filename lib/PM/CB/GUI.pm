@@ -106,6 +106,13 @@ sub gui {
     )->pack(-side => 'left');
     $mw->bind('<Alt-o>', sub { $opt_b->invoke });
 
+    my $list_b = $button_f->Button(
+        -text      => 'List Monks',
+        -command   => sub { $self->list_monks },
+        -underline => 0,
+    )->pack(-side => 'left');
+    $mw->bind('<Alt-l>', sub { $list_b->invoke });
+
     my $quit_b = $button_f->Button(-text      => 'Quit',
                                    -command   => sub { $self->quit },
                                    -underline => 0,
@@ -132,6 +139,7 @@ sub gui {
             title      => sub { $self->show_title(@$msg) },
             send_login => sub { $self->send_login },
             url        => sub { $self->{pm_url} = $msg->[0] },
+            list       => sub { $self->show_list(@$msg) },
             quit       => sub { $self->{control_t}->join; Tk::exit() },
 
         );
@@ -144,6 +152,12 @@ sub gui {
     $mw->after(1, sub { $self->login_dialog; $self->{write}->focus; });
 
     Tk::MainLoop();
+}
+
+
+sub list_monks {
+    my ($self) = @_;
+    $self->{to_comm}->enqueue(['list']);
 }
 
 
@@ -416,6 +430,14 @@ sub show {
                        sub { browse($self->url($url)) });
     }
     $text->see('end');
+}
+
+
+sub show_list {
+    my ($self, @monks) = @_;
+    $self->{read}->insert('end', '[Active Monks] ', ['private'],
+                          join(', ', @monks) . "\n", ['unseen']);
+    $self->{read}->see('end');
 }
 
 
