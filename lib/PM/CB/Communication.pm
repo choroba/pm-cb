@@ -62,35 +62,36 @@ sub communicate {
         my $url = $self->url . CB;
         $url .= ";fromid=$from_id" if defined $from_id;
         $mech->get($url);
+        if ( my $content = $mech->content ) {
+            my $xml;
+            if (eval {
+                $xml = 'XML::LibXML'->load_xml(string => $mech->content);
+            }) {
 
-        my $xml;
-        if (eval {
-            $xml = 'XML::LibXML'->load_xml(string => $mech->content);
-        }) {
+                my @messages = $xml->findnodes('/chatter/message');
 
-            my @messages = $xml->findnodes('/chatter/message');
+                my $time = $xml->findvalue('/chatter/info/@gentimeGMT');
 
-            my $time = $xml->findvalue('/chatter/info/@gentimeGMT');
-
-            for my $message (@messages) {
-                my $id = $message->findvalue('message_id');
-                if (! exists $seen{$id}) {
-                    $self->{to_gui}->enqueue([
-                        chat => $time,
-                                $message->findvalue('author'),
-                                $message->findvalue('text') ]);
-                    undef $seen{$id};
+                for my $message (@messages) {
+                    my $id = $message->findvalue('message_id');
+                    if (! exists $seen{$id}) {
+                        $self->{to_gui}->enqueue([
+                            chat => $time,
+                                    $message->findvalue('author'),
+                                    $message->findvalue('text') ]);
+                        undef $seen{$id};
+                    }
                 }
+                $self->{to_gui}->enqueue([ time => $time, !! @messages ]);
+
+                my $new_from_id = $xml->findvalue(
+                    '/chatter/message[last()]/message_id');
+                $from_id = $new_from_id if length $new_from_id;
+
+                $previous = $xml;
+            } else {
+                warn $@;
             }
-            $self->{to_gui}->enqueue([ time => $time, !! @messages ]);
-
-            my $new_from_id = $xml->findvalue(
-                '/chatter/message[last()]/message_id');
-            $from_id = $new_from_id if length $new_from_id;
-
-            $previous = $xml;
-        } else {
-            warn $@;
         }
 
         my @private = $self->get_all_private(\%seen);
