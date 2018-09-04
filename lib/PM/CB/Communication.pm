@@ -62,10 +62,10 @@ sub communicate {
         my $url = $self->url . CB;
         $url .= ";fromid=$from_id" if defined $from_id;
         $mech->get($url);
-        if ( my $content = $mech->content ) {
+        if ( my $content = $self->mech_content ) {
             my $xml;
             if (eval {
-                $xml = 'XML::LibXML'->load_xml(string => $mech->content);
+                $xml = 'XML::LibXML'->load_xml(string => $content);
             }) {
 
                 my @messages = $xml->findnodes('/chatter/message');
@@ -111,7 +111,7 @@ sub get_monklist {
     require XML::LibXML;
     my $dom;
     eval {
-        $dom = 'XML::LibXML'->load_xml(string => $self->{mech}->content);
+        $dom = 'XML::LibXML'->load_xml(string => $self->mech_content);
     } or return;
     my $names = $dom->findnodes('/CHATTER/user');
     $self->{to_gui}->enqueue(['list', map $_->{username}, @$names]);
@@ -139,7 +139,7 @@ sub handle_url {
             $self->{mech}->get($url . ';displaytype=xml');
             my $dom;
             eval {
-                $dom = 'XML::LibXML'->load_xml(string => $self->{mech}->content)
+                $dom = 'XML::LibXML'->load_xml(string => $self->mech_content)
             } or return;
 
             $titles{$id} = $title = $dom->findvalue('/node/@title');
@@ -158,7 +158,7 @@ sub login {
             fields      => { user   => $username,
                              passwd => $password,
         });
-        return $self->{mech}->content
+        return $self->mech_content
             !~ /^Oops\.  You must have the wrong login/m
     }
     return
@@ -192,10 +192,11 @@ sub get_all_private {
   ALL:
     while (1) {
         $self->{mech}->get($url);
-        last unless $self->{mech}->content =~ /</;
+        my $content = $self->mech_content;
+        last unless $content =~ /</;
 
         my $xml;
-        eval { $xml = 'XML::LibXML'->load_xml(string => $self->{mech}->content) }
+        eval { $xml = 'XML::LibXML'->load_xml(string => $content) }
             or last;
 
         my @messages;
@@ -218,6 +219,16 @@ sub get_all_private {
     }
 
     return @private
+}
+
+
+sub mech_content {
+    my ($self) = @_;
+    my $content = $self->{mech}->content;
+    # libxml respects encoding, but mech returns the page in unicode,
+    # not windows-1252.
+    $content =~ s/windows-1252/utf-8/;
+    return $content
 }
 
 

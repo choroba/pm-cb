@@ -347,17 +347,6 @@ sub decode {
     require Encode;
     require charnames;
     my ($msg) = @_;
-    my $encoded;
-    eval { $encoded = Encode::decode('UTF-8', $msg); 1 }
-        and $msg = $encoded
-        or do {
-            Encode::_utf8_off($msg);
-            eval {
-                $msg = Encode::encode('cp-1252',
-                                      Encode::decode('UTF-8', $msg))
-            };
-            Encode::_utf8_on($msg);
-    };
 
     $msg =~ s/&#(x?)([0-9a-f]+);/$1 ? chr hex $2 : chr $2/gei;
     $msg =~ s/([^\0-\x{FFFF}])/
