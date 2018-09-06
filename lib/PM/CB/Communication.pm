@@ -227,7 +227,7 @@ sub mech_content {
     my $content = $self->{mech}->content;
     # libxml respects encoding, but mech returns the page in unicode,
     # not windows-1252.
-    $content =~ s/windows-1252/utf-8/;
+    $content =~ s/windows-1252/utf-8/i;
     return $content
 }
 
