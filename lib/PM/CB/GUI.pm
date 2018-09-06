@@ -344,7 +344,6 @@ sub seen {
 
 
 sub decode {
-    require Encode;
     require charnames;
     my ($msg) = @_;
 
