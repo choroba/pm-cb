@@ -6,10 +6,11 @@ use Syntax::Construct qw{ // };
 
 
 use constant {
-    TITLE => 'PM::CB::G',
-    PUBLIC => 0,
-    PRIVATE => 1,
-    GESTURE => 2,
+    TITLE        => 'PM::CB::G',
+    PUBLIC       => 0,
+    PRIVATE      => 1,
+    GESTURE      => 2,
+    HISTORY_SIZE => 100,
 };
 
 
@@ -74,11 +75,7 @@ sub gui {
 
     my $button_f = $mw->Frame->pack;
     my $send_b = $button_f->Button(-text => 'Send',
-                                   -command => sub {
-                                       $self->{to_comm}->enqueue(
-                                           [ send => $write->Contents ]);
-                                       $write->Contents(q());
-                                   }
+                                   -command => sub { $self->send },
                                   )->pack(-side => 'left');
     $mw->bind("<$_>", sub { $write->delete('insert - 1 char');
                             $send_b->invoke }
@@ -113,6 +110,12 @@ sub gui {
     )->pack(-side => 'left');
     $mw->bind('<Alt-l>', sub { $list_b->invoke });
 
+    my $help_b = $self->{opt_h} = $button_f->Button(-text      => 'Help',
+                                   -command   => sub { $self->help },
+                                   -underline => 0,
+                                  )->pack(-side => 'left');
+    $mw->bind('<Alt-h>', sub { $help_b->invoke });
+
     my $quit_b = $button_f->Button(-text      => 'Quit',
                                    -command   => sub { $self->quit },
                                    -underline => 0,
@@ -123,6 +126,25 @@ sub gui {
               sub { $self->{read}->yviewScroll(-1, 'pages')});
     $mw->bind('<Next>',
               sub { $self->{read}->yviewScroll( 1, 'pages')});
+
+    $self->{history} = [""];
+    $self->{history_index} = -1;
+    $mw->bind('<Alt-comma>',
+              sub {
+                  $self->{history_index}--
+                      unless $self->{history_index} <= -@{ $self->{history} };
+                  $write->Contents(
+                      $self->{history}[ $self->{history_index} ]
+                  );
+              });
+    $mw->bind('<Alt-period>',
+              sub {
+                  $self->{history_index}++
+                      unless $self->{history_index} == -1;
+                  $write->Contents(
+                      $self->{history}[ $self->{history_index} ]
+                  );
+              });
 
     my ($username, $password);
 
@@ -152,6 +174,17 @@ sub gui {
     $mw->after(1, sub { $self->login_dialog; $self->{write}->focus; });
 
     Tk::MainLoop();
+}
+
+
+sub send {
+    my ($self) = @_;
+    my $write = $self->{write};
+    $self->{to_comm}->enqueue([ send => $write->Contents ]);
+    splice @{ $self->{history} }, -1, 0, $write->Contents;
+    shift @{ $self->{history} } if HISTORY_SIZE < @{ $self->{history} };
+    $self->{history_index} = -1;
+    $write->Contents(q());
 }
 
 
@@ -539,5 +572,20 @@ sub quit {
     $self->{to_control}->insert(0, ['quit']);
 }
 
+
+sub help {
+    my ($self) = @_;
+    $self->{opt_h}->configure(-state => 'disabled');
+    my $top = $self->{mw}->Toplevel(-title => TITLE . ' Help');
+    my $text = $top->ROText(height => 4)->pack;
+    $text->insert('end', "<Alt+,> previous history item\n");
+    $text->insert('end', "<Alt+.> next history item\n");
+    $text->insert('end', "\n<Esc> to exit help");
+    $top->bind('<Escape>', my $end = sub {
+                   $top->DESTROY;
+                   $self->{opt_h}->configure(-state => 'normal');
+               });
+    $top->protocol(WM_DELETE_WINDOW => $end);
+}
 
 __PACKAGE__
