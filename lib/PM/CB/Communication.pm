@@ -4,13 +4,14 @@ use warnings;
 use strict;
 
 use constant {
-    FREQ          => 7,
+    FREQ             => 7,
+    REPEAT_THRESHOLD => 3,
     # Node ids:
-    LOGIN         => 109,
-    CB            => 207304,
-    SEND          => 227820,
-    PRIVATE       => 15848,
-    MONKLIST      => 15851,
+    LOGIN            => 109,
+    CB               => 207304,
+    SEND             => 227820,
+    PRIVATE          => 15848,
+    MONKLIST         => 15851,
 };
 
 
@@ -106,8 +107,18 @@ sub communicate {
 
 
 sub get_monklist {
-    my ($self) = @_;
-    $self->{mech}->get($self->url . MONKLIST);
+    my ($self, $repeat) = @_;
+    my $response;
+    eval { $response = $self->{mech}->get($self->url . MONKLIST) };
+    if (! $response || $response->is_error) {
+        if (0 + $repeat <= REPEAT_THRESHOLD) {
+            $self->get_monklist($repeat + 1);
+
+        } else {
+            warn "Can't get monklist.\n";
+        }
+        return
+    }
     require XML::LibXML;
     my $dom;
     eval {
@@ -131,12 +142,21 @@ sub handle_url {
 
 {   my %titles;
     sub get_title {
-        my ($self, $id, $name) = @_;
+        my ($self, $id, $name, $repeat) = @_;
         my $title = $titles{$id};
         unless (defined $title) {
             my $url = $self->url . $id;
+            my $response;
+            eval {
+                $response = $self->{mech}->get($url . ';displaytype=xml');
+            };
+            if (! $response || $response->is_error) {
+                $self->get_title($id, $name, $repeat // 0 + 1)
+                    unless $repeat // 0 > REPEAT_THRESHOLD;
+                return
+            }
+
             require XML::LibXML;
-            $self->{mech}->get($url . ';displaytype=xml');
             my $dom;
             eval {
                 $dom = 'XML::LibXML'->load_xml(string => $self->mech_content)
@@ -166,20 +186,31 @@ sub login {
 
 
 sub send_message {
-    my ($self, $message) = @_;
+    my ($self, $message, $repeat) = @_;
     return unless length $message;
 
     ( my $msg = $message )
         =~ s/(.)/ord $1 > 127 ? '&#' . ord($1) . ';' : $1/ge;
-    my $response = $self->{mech}->post(
+    my $response;
+    eval { $response = $self->{mech}->post(
         $self->url . SEND,
         Content   => { op      => 'message',
                        node    => SEND,
                        message => $msg }
-    );
+    ) };
+    if (! $response
+        || $response->is_error
+        || $response->content =~ m{<title>500\ Internal\ Server\ Error
+                                  |Server\ Error\ \(Error\ ID\ \w+\)</span>}x
+    ) {
+        $self->send_message($message, $repeat // 0 + 1)
+            unless $repeat // 0 > REPEAT_THRESHOLD;
+        return
+    }
     my $content = $response->content;
-    $self->{to_gui}->enqueue([ private => '<pm-cb-g>', undef, $content ])
-        unless $content =~ /^Chatter accepted/;
+    return if $content =~ /^Chatter accepted/;
+
+    $self->{to_gui}->enqueue([ private => '<pm-cb-g>', undef, $content ]);
 }
 
 
@@ -191,7 +222,10 @@ sub get_all_private {
     my ($max, @private);
   ALL:
     while (1) {
-        $self->{mech}->get($url);
+        my $response;
+        eval { $response = $self->{mech}->get($url) };
+        next unless $response && $response->is_success;
+
         my $content = $self->mech_content;
         last unless $content =~ /</;
 
