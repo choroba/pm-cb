@@ -440,28 +440,39 @@ sub show {
 
         $fix_length += length($orig) - length($name);
 
-        $text->tagConfigure($tag => -underline => 1);
-        $text->insert($from, "[$name]", [$tag]);
-        $text->tagBind($tag, '<Enter>',
-                       sub { $self->{balloon}->attach(
-                           $text,
-                           -balloonmsg      => $self->url($url),
-                           -state           => 'balloon',
-                           -balloonposition => 'mouse') });
-        $text->tagBind($tag, '<Leave>',
-                       sub { $self->{balloon}->detach($text) });
-        $text->tagBind($tag, '<Button-1>',
-                       sub { browse($self->url($url)) });
+        $self->add_clickable($name, $tag, $from, $url);
     }
     $text->see('end');
 }
 
 
+sub add_clickable {
+    my ($self, $name, $tag, $from, $url) = @_;
+    my $text = $self->{read};
+    $text->tagConfigure($tag => -underline => 1);
+    $text->insert($from, "[$name]", [$tag]);
+    $text->tagBind($tag, '<Enter>',
+                   sub { $self->{balloon}->attach(
+                       $text,
+                       -balloonmsg      => $self->url($url),
+                       -state           => 'balloon',
+                       -balloonposition => 'mouse') });
+    $text->tagBind($tag, '<Leave>',
+                   sub { $self->{balloon}->detach($text) });
+    $text->tagBind($tag, '<Button-1>',
+                   sub { browse($self->url($url)) });
+}
+
+
 sub show_list {
     my ($self, @monks) = @_;
-    $self->{read}->insert('end', '[Active Monks] ', ['private'],
-                          join(', ', @monks) . "\n", ['unseen']);
-    $self->{read}->see('end');
+    $self->{read}->insert('end', '[Active Monks]', ['private']);
+    for my $monk (@monks) {
+        $self->{read}->insert('end', ' ');
+        $self->add_clickable("$monk", "browse:$monk", 'end',
+                             $self->url("__PM_CB_URL__$monk"));
+    }
+    $self->{read}->insert('end', "\n");
 }
 
 
