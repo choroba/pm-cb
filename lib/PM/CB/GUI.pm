@@ -23,7 +23,7 @@ sub new {
 sub url {
     my ($self, $url) = @_;
     $url //= '__PM_CB_URL__';
-    $url =~ s{__PM_CB_URL__}{https://$self->{browse_url}/?node_id=};
+    $url =~ s{__PM_CB_URL__}{https://$self->{browse_url}/?node=};
     return $url
 }
 
@@ -410,7 +410,7 @@ sub show {
                                  | (?:meta)?mod | doc
                                  | id
                                  | wp
-                               )://.+?\s*)\]}gx
+                               )://.+?\s*|\S+)\]}gx
     ) {
         my $orig = $1;
         my ($url, $name) = split /\|/, $orig;
@@ -433,6 +433,9 @@ sub show {
             $self->ask_title($id, $url) if $name eq $url;
             $url = '__PM_CB_URL__' . $id;
             $tag = "browse:$id|$name";
+        } elsif ($url eq $orig) {
+            substr $url, 0, 0, '__PM_CB_URL__';
+            $tag = "browse:$url|$name";
         }
 
         $fix_length += length($orig) - length($name);
