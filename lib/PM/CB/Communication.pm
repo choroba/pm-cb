@@ -111,7 +111,8 @@ sub get_monklist {
     my $response;
     eval { $response = $self->{mech}->get($self->url . MONKLIST) };
     if (! $response || $response->is_error) {
-        if (0 + $repeat <= REPEAT_THRESHOLD) {
+        $repeat //= 0;
+        if ($repeat <= REPEAT_THRESHOLD) {
             $self->get_monklist($repeat + 1);
 
         } else {
@@ -151,8 +152,9 @@ sub handle_url {
                 $response = $self->{mech}->get($url . ';displaytype=xml');
             };
             if (! $response || $response->is_error) {
-                $self->get_title($id, $name, $repeat // 0 + 1)
-                    unless $repeat // 0 > REPEAT_THRESHOLD;
+                $repeat //= 0;
+                $self->get_title($id, $name, $repeat + 1)
+                    unless $repeat > REPEAT_THRESHOLD;
                 return
             }
 
@@ -203,8 +205,9 @@ sub send_message {
         || $response->content =~ m{<title>500\ Internal\ Server\ Error
                                   |Server\ Error\ \(Error\ ID\ \w+\)</span>}x
     ) {
-        $self->send_message($message, $repeat // 0 + 1)
-            unless $repeat // 0 > REPEAT_THRESHOLD;
+        $repeat //= 0;
+        $self->send_message($message, $repeat + 1)
+            unless $repeat > REPEAT_THRESHOLD;
         return
     }
     my $content = $response->content;
