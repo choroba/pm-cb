@@ -461,6 +461,8 @@ sub add_clickable {
                    sub { $self->{balloon}->detach($text) });
     $text->tagBind($tag, '<Button-1>',
                    sub { browse($self->url($url)) });
+    $text->tagBind($tag, '<Control-Button-1>',
+                   sub { $text->clipboardAppend($self->url($url)) });
 }
 
 
