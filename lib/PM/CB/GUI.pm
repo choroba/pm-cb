@@ -397,7 +397,7 @@ sub show {
     my ($self, $timestamp, $author, $message, $type) = @_;
 
     my $text = $self->{read};
-    $text->insert(end => "<$timestamp> ", ['time']) unless $self->{no_time};
+    $text->insert(end => "$timestamp", ['time']) unless $self->{no_time};
     my $author_separator = $type == GESTURE ? "" : ': ';
     $text->insert(end => "[$author]$author_separator",
                   { (PRIVATE) => 'private',
@@ -504,10 +504,13 @@ sub show_message {
 
     my $type = $message =~ s{^/me(?=\s|')}{} ? GESTURE : PUBLIC;
     $message = decode($message);
-    $timestamp = convert_time($timestamp, $tzoffset)
-                 ->strftime('%Y-%m-%d %H:%M:%S');
-
-    substr $timestamp, 0, 11, q() if 0 == index $timestamp, $self->{last_date};
+    my $ct = convert_time($timestamp, $tzoffset);
+    if ($self->{time_format}) {
+	$timestamp = $ct->strftime($self->{time_format});
+    } else {
+	$timestamp = $ct->strftime('<%Y-%m-%d %H:%M:%S> ');
+	substr $timestamp, 1, 11, q() if 0 == index $timestamp, $self->{last_date};
+    }
     $self->show($timestamp, $author, $message, $type);
 }
 
@@ -525,7 +528,7 @@ sub show_private {
     } else {
         $time = Time::Piece::localtime();
     }
-    $time = $time->strftime('%Y-%m-%d %H:%M:%S');
+    $time = $time->strftime('%Y-%m-%d %H:%M:%S ');
 
     $self->show($time, $author, $msg, PRIVATE);
 }
@@ -543,9 +546,9 @@ sub convert_time {
 sub update_time {
     my ($self, $server_time, $tzoffset, $should_update) = @_;
     my $local_time = convert_time($server_time, $tzoffset);
+    my $tfmt = $self->{date_format} || '%Y-%m-%d %H:%M:%S';
     $self->{last_update}->configure(
-        -text => 'Last update: '
-                 . $local_time->strftime('%Y-%m-%d %H:%M:%S'));
+        -text => 'Last update: ' . $local_time->strftime($tfmt));
     $self->{last_date} = $local_time->strftime('%Y-%m-%d') if $should_update;
 }
 
