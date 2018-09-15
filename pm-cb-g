@@ -18,6 +18,7 @@ BEGIN {
         bg_color      => 'white',
         fg_color      => 'black',
         author_color  => 'blue',
+        author_format => '[%s]',
         private_color => 'magenta',
         gesture_color => 'darkgreen',
         time_color    => 'darkcyan',
