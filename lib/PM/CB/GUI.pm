@@ -559,6 +559,12 @@ sub update_time {
     sub login_dialog {
         my ($self) = @_;
 
+        if ($self->{username} && $self->{password}) {
+	    ($login, $password) = ($self->{username}, $self->{password});
+	    $self->send_login;
+	    return;
+	}
+
         my $dialog = $self->{mw}->Dialog(
             -title          => 'Login',
             -default_button => 'Login',

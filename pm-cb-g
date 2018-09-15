@@ -36,10 +36,12 @@ BEGIN {
     my $home = $ENV{HOME} || $ENV{USERPROFILE} || $ENV{HOMEPATH};
     foreach my $rcf (grep { -s }
             "$home/pm-cb.rc", "$home/.pm-cbrc", "$home/.config/pm-cb") {
-        (stat $rcf)[2] & 022 and next;
+        my $mode = (stat $rcf)[2];
+        $mode & 022 and next;
         open my $fh, "<", $rcf or next;
         while (<$fh>) {
-            s/\s*#.*$//;
+            m/^\s*[;#]/ and next;
+            $mode & 044 && m/password/i and next;
             my ($k, $v) = (m/^\s*([-\w]+)\s*[:=]\s*(.*\S)/) or next;
             $conf{ lc $k
                 =~ s{-}{_}gr
@@ -56,6 +58,7 @@ BEGIN {
                 =~ s{^(?:no|false)$}{0}ir
                 =~ s{^(?:yes|true)$}{1}ir;
             }
+
         }
     exists $conf{show_time} and $conf{no_time} = !delete $conf{show_time};
     $conf{font_name} =~ m/\s/ and $conf{font_name} = "{".$conf{font_name}."}";
