@@ -11,49 +11,87 @@ use Pod::Usage;
 use PM::CB::GUI;
 use PM::CB::Control;
 
-my ($bg_color, $fg_color, $author_color, $private_color, $gesture_color,
-    $time_color, $font_name, $char_size, $stack_size, $seen_color, $mce,
-    $no_time, $help, $pm_url, $browse_url, $random_url);
+my (%conf, $help);
 
 BEGIN {
-    ($bg_color, $fg_color, $author_color, $private_color, $gesture_color,
-     $time_color, $seen_color, $font_name, $char_size, $stack_size, $mce,
-     $no_time, $help, $pm_url, $random_url)
-    = qw( white black blue magenta darkgreen darkcyan darkgray Helvetica
-          12 15 0 0 0 www.perlmonks.org 0 );
+    %conf = (
+        bg_color      => 'white',
+        fg_color      => 'black',
+        author_color  => 'blue',
+        private_color => 'magenta',
+        gesture_color => 'darkgreen',
+        time_color    => 'darkcyan',
+        seen_color    => 'darkgray',
+        font_name     => 'Helvetica',
+        char_size     => 12,
+        stack_size    => 15,
+        mce           => 0,
+        no_time       => 0,
+        pm_url        => 'www.perlmonks.org',
+        date_format   => 'YYYY-MM-DD hh:mm:ss',
+        time_format   => '<hh:mm:ss>',
+        copy_url      => 'Control-Button-1',
+        random_url    => 0);
+    # /me considers File::HomeDir overly complicated
+    my $home = $ENV{HOME} || $ENV{USERPROFILE} || $ENV{HOMEPATH};
+    foreach my $rcf (grep { -s }
+	    "$home/pm-cb.rc", "$home/.pm-cbrc", "$home/.config/pm-cb") {
+	print "Trying $rcf\n";
+	(stat $rcf)[2] & 022 and next;
+	open my $fh, "<", $rcf or next;
+	print "Reading $rcf\n";
+	while (<$fh>) {
+	    s/\s*#.*$//;
+	    my ($k, $v) = (m/^\s*([-\w]+)\s*[:=]\s*(.*\S)/) or next;
+	    $conf{ lc $k
+		=~ s{-}{_}gr
+		=~ s{[-_]colou?r$}{_color}ir
+		=~ s{background}{bg}ir
+		=~ s{foreground}{fg}ir
+		=~ s{^(?:unicode|utf-?8?)$}{utf8}ir
+		=~ s{^use_}{}ir
+		=~ s{font_size}{char_size}ir
+		=~ s{show_time(?:stamps?)}{show_time}ir
+	      } = $v
+		=~ s{U\+?([0-9A-Fa-f]{2,7})}{chr hex $1}ger
+		=~ s{^(?:no|false)$}{0}ir
+		=~ s{^(?:yes|true)$}{1}ir;
+	    }
+	exists $conf{show_time} and $conf{no_time} = !delete $conf{show_time};
+	}
 
     GetOptions(
-        'a|author_color=s'  => \$author_color,
-        'b|bg_color=s'      => \$bg_color,
-        'c|char_size=i'     => \$char_size,
-        'f|fg_color=s'      => \$fg_color,
-        'F|font_name=s'     => \$font_name,
-        'g|gesture_color=s' => \$gesture_color,
+        'a|author_color=s'  => \$conf{author_color},
+        'b|bg_color=s'      => \$conf{bg_color},
+        'c|char_size=i'     => \$conf{char_size},
+        'f|fg_color=s'      => \$conf{fg_color},
+        'F|font_name=s'     => \$conf{font_name},
+        'g|gesture_color=s' => \$conf{gesture_color},
         'h|help'            => \$help,
-        'm|mce'             => \$mce,
-        'n|no_time'         => \$no_time,
-        'p|private_color=s' => \$private_color,
-        'r|random_url'      => \$random_url,
-        's|stack_size=i'    => \$stack_size,
-        'S|seen_color=s'    => \$seen_color,
-        't|time_color=s'    => \$time_color,
-        'u|url=s'           => \$pm_url,
-        'U|browse_url=s'    => \$browse_url,
+        'm|mce'             => \$conf{mce},
+        'n|no_time'         => \$conf{no_time},
+        'p|private_color=s' => \$conf{private_color},
+        'r|random_url'      => \$conf{random_url},
+        's|stack_size=i'    => \$conf{stack_size},
+        'S|seen_color=s'    => \$conf{seen_color},
+        't|time_color=s'    => \$conf{time_color},
+        'u|url=s'           => \$conf{pm_url},
+        'U|browse_url=s'    => \$conf{browse_url},
     ) or pod2usage(-verbose => 0, -exitval => 1);
-    $browse_url //= $pm_url;
+    $conf{browse_url} //= $conf{pm_url};
 
     pod2usage(-verbose => 1, -exitval => 0) if $help;
 }
 
 
-use if $mce => 'MCE::Hobo';
-use if $mce => 'MCE::Shared';
+use if $conf{mce} => 'MCE::Hobo';
+use if $conf{mce} => 'MCE::Shared';
 
-use if ! $mce => threads => (stack_size => 2 ** $stack_size);
-use if ! $mce => 'Thread::Queue';
+use if ! $conf{mce} => threads => (stack_size => 2 ** $conf{stack_size});
+use if ! $conf{mce} => 'Thread::Queue';
 
 my ($queue_class, $queue_constructor, $worker_class)
-    = $mce
+    = $conf{mce}
     ? ('MCE::Shared', 'queue', 'MCE::Hobo')
     : ('Thread::Queue', 'new', 'threads');
 
@@ -64,30 +102,30 @@ my $control_t = $worker_class->create(sub {
                                         to_comm      => $to_comm,
                                         from_gui     => $to_control,
                                         worker_class => $worker_class,
-                                        pm_url       => $pm_url,
-                                        random_url   => $random_url});
+                                        pm_url       => $conf{pm_url},
+                                        random_url   => $conf{random_url}});
     $control->start_comm;
 });
 
 my $gui = 'PM::CB::GUI'->new({
-    bg_color      => $bg_color,
-    fg_color      => $fg_color,
-    author_color  => $author_color,
-    private_color => $private_color,
-    gesture_color => $gesture_color,
-    time_color    => $time_color,
-    font_name     => $font_name,
-    char_size     => $char_size,
-    stack_size    => $stack_size,
-    seen_color    => $seen_color,
-    mce           => $mce,
-    no_time       => $no_time,
+    bg_color      => $conf{bg_color},
+    fg_color      => $conf{fg_color},
+    author_color  => $conf{author_color},
+    private_color => $conf{private_color},
+    gesture_color => $conf{gesture_color},
+    time_color    => $conf{time_color},
+    font_name     => $conf{font_name},
+    char_size     => $conf{char_size},
+    stack_size    => $conf{stack_size},
+    seen_color    => $conf{seen_color},
+    mce           => $conf{mce},
+    no_time       => $conf{no_time},
     from_comm     => $to_gui,
     to_comm       => $to_comm,
     to_control    => $to_control,
     control_t     => $control_t,
-    browse_url    => $browse_url,
-    random_url    => $random_url});
+    browse_url    => $conf{browse_url},
+    random_url    => $conf{random_url}});
 $gui->gui;
 
 
