@@ -1,7 +1,6 @@
 #!/usr/bin/perl
 use warnings;
 use strict;
-use Syntax::Construct qw{ // };
 
 use FindBin;
 use lib "$FindBin::Bin/lib";

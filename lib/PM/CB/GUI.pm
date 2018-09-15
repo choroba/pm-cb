@@ -2,8 +2,6 @@ package PM::CB::GUI;
 
 use warnings;
 use strict;
-use Syntax::Construct qw{ // };
-
 
 use constant {
     TITLE        => 'PM::CB::G',
