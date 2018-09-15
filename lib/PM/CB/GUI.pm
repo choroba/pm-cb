@@ -151,6 +151,26 @@ sub gui {
                   );
               });
 
+    if (my $hf = $self->{history_file}) {
+	$hf =~ s/~/$ENV{HOME}/;
+	if (open my $fh, "<:encoding(utf-8)", $hf) {
+	    local $/ = "\x{2028}";
+	    chomp (my @hist = <$fh>);
+	    my $hl = $self->{history_size} || 0;
+	    $hl > 0 && @hist > $hl and splice @hist, 0, $#hist - $hl;
+	    my $text = $self->{read};
+	    for (@hist) {
+		my ($time, $author, $msg) = split m/\x{2063}/ => $_;
+		$text->insert(end => "$time$author: $msg", ['seen']);
+	    }
+	}
+
+	if (open my $fh, ">>:encoding(utf-8)", $hf) {
+	    select((select($fh), $| = 1)[0]);
+	    $self->{log_fh} = $fh;
+	}
+    }
+
     my ($username, $password);
 
     $mw->repeat(1000, sub {
@@ -409,6 +429,8 @@ sub show {
     $column += (3 + length($timestamp)) * ! $self->{no_time}
         + length($author_separator) + length $s_author;
     $text->insert(end => "$message\n", ['unseen']);
+    my $lh = $self->{log_fh};
+    $lh and print $lh join "\x{2063}" => $timestamp, $s_author, $message =~ s/\n*\z/\n\x{2028}/r;
 
     my $fix_length = 0;
     while ($message =~ m{\[(\s*(?:
