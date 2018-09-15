@@ -417,17 +417,16 @@ sub show {
     my ($self, $timestamp, $author, $message, $type) = @_;
 
     my $text = $self->{read};
-    $text->insert(end => "$timestamp", ['time']) unless $self->{no_time};
+    $text->insert(end => $timestamp, ['time']) unless $self->{no_time};
     my $author_separator = $type == GESTURE ? "" : ': ';
-    my $s_author = sprintf $self->{author_format}, $author;
-    $text->insert(end => "$s_author$author_separator",
+    my $s_author = sprintf ($self->{author_format}, $author) . $author_separator;
+    $text->insert(end => $s_author,
                   { (PRIVATE) => 'private',
                     (PUBLIC)  => 'author',
                     (GESTURE) => 'gesture' }->{$type});
     my ($line, $column) = split /\./, $text->index('end');
     --$line;
-    $column += (3 + length($timestamp)) * ! $self->{no_time}
-        + length($author_separator) + length $s_author;
+    $column += length($timestamp) * ! $self->{no_time} + length $s_author;
     $text->insert(end => "$message\n", ['unseen']);
     my $lh = $self->{log_fh};
     $lh and print $lh join "\x{2063}" => $timestamp, $s_author, $message =~ s/\n*\z/\n\x{2028}/r;
