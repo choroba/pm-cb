@@ -40,6 +40,7 @@ sub gui {
     require Tk::Balloon;
 
     $self->{mw} = my $mw = 'MainWindow'->new(-title => TITLE);
+    $self->{geometry} and $mw->geometry ($self->{geometry});
     $mw->protocol(WM_DELETE_WINDOW => sub { $self->quit });
     $mw->optionAdd('*font', "$self->{font_name} $self->{char_size}");
 

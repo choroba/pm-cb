@@ -109,27 +109,12 @@ my $control_t = $worker_class->create(sub {
 });
 
 my $gui = 'PM::CB::GUI'->new({
-    bg_color      => $conf{bg_color},
-    fg_color      => $conf{fg_color},
-    author_color  => $conf{author_color},
-    private_color => $conf{private_color},
-    gesture_color => $conf{gesture_color},
-    time_color    => $conf{time_color},
-    font_name     => $conf{font_name},
-    char_size     => $conf{char_size},
-    stack_size    => $conf{stack_size},
-    seen_color    => $conf{seen_color},
-    mce           => $conf{mce},
-    no_time       => $conf{no_time},
-    from_comm     => $to_gui,
-    to_comm       => $to_comm,
-    to_control    => $to_control,
-    control_t     => $control_t,
-    copy_url      => $conf{copy_url},
-    browse_url    => $conf{browse_url},
-    random_url    => $conf{random_url}});
+    %conf,
+    from_comm  => $to_gui,
+    to_comm    => $to_comm,
+    to_control => $to_control,
+    control_t  => $control_t});
 $gui->gui;
-
 
 =head1 NAME
 
