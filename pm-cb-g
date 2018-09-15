@@ -35,30 +35,31 @@ BEGIN {
     # /me considers File::HomeDir overly complicated
     my $home = $ENV{HOME} || $ENV{USERPROFILE} || $ENV{HOMEPATH};
     foreach my $rcf (grep { -s }
-	    "$home/pm-cb.rc", "$home/.pm-cbrc", "$home/.config/pm-cb") {
-	print "Trying $rcf\n";
-	(stat $rcf)[2] & 022 and next;
-	open my $fh, "<", $rcf or next;
-	print "Reading $rcf\n";
-	while (<$fh>) {
-	    s/\s*#.*$//;
-	    my ($k, $v) = (m/^\s*([-\w]+)\s*[:=]\s*(.*\S)/) or next;
-	    $conf{ lc $k
-		=~ s{-}{_}gr
-		=~ s{[-_]colou?r$}{_color}ir
-		=~ s{background}{bg}ir
-		=~ s{foreground}{fg}ir
-		=~ s{^(?:unicode|utf-?8?)$}{utf8}ir
-		=~ s{^use_}{}ir
-		=~ s{font_size}{char_size}ir
-		=~ s{show_time(?:stamps?)}{show_time}ir
-	      } = $v
-		=~ s{U\+?([0-9A-Fa-f]{2,7})}{chr hex $1}ger
-		=~ s{^(?:no|false)$}{0}ir
-		=~ s{^(?:yes|true)$}{1}ir;
-	    }
-	exists $conf{show_time} and $conf{no_time} = !delete $conf{show_time};
-	}
+            "$home/pm-cb.rc", "$home/.pm-cbrc", "$home/.config/pm-cb") {
+        (stat $rcf)[2] & 022 and next;
+        open my $fh, "<", $rcf or next;
+        while (<$fh>) {
+            s/\s*#.*$//;
+            my ($k, $v) = (m/^\s*([-\w]+)\s*[:=]\s*(.*\S)/) or next;
+            $conf{ lc $k
+                =~ s{-}{_}gr
+                =~ s{[-_]colou?r$}{_color}ir
+                =~ s{background}{bg}ir
+                =~ s{foreground}{fg}ir
+                =~ s{^(?:unicode|utf-?8?)$}{utf8}ir
+                =~ s{^use_}{}ir
+                =~ s{font_size}{char_size}ir
+                =~ s{font_family}{char_name}ir
+                =~ s{show_time(?:stamps?)}{show_time}ir
+              } = $v
+                =~ s{U\+?([0-9A-Fa-f]{2,7})}{chr hex $1}ger
+                =~ s{^(?:no|false)$}{0}ir
+                =~ s{^(?:yes|true)$}{1}ir;
+            }
+        }
+    exists $conf{show_time} and $conf{no_time} = !delete $conf{show_time};
+    $conf{font_name} =~ m/\s/ and $conf{font_name} = "{".$conf{font_name}."}";
+    exists $conf{xmodifiers} && !$conf{xmodifiers} and delete $ENV{XMODIFIERS};
 
     GetOptions(
         'a|author_color=s'  => \$conf{author_color},
@@ -124,6 +125,7 @@ my $gui = 'PM::CB::GUI'->new({
     to_comm       => $to_comm,
     to_control    => $to_control,
     control_t     => $control_t,
+    copy_url      => $conf{copy_url},
     browse_url    => $conf{browse_url},
     random_url    => $conf{random_url}});
 $gui->gui;
