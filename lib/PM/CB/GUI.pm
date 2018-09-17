@@ -416,6 +416,7 @@ sub show {
                                  | (?:meta)?mod | doc
                                  | id
                                  | wp
+                                 | pad
                                )://.+?\s*|\S+)\]}gx
     ) {
         my $orig = $1;
@@ -430,6 +431,10 @@ sub show {
         $name = $url unless length $name;
         s/^\s+//, s/\s+$// for $name, $url;
         $url =~ s{^(?:(?:meta)?mod|doc)://}{http://p3rl.org/};
+        $url =~ s{^pad://([^|\]]*)}
+                 {length $1
+                      ? $self->url("__PM_CB_URL__$1's+scratchpad")
+                      : $self->url("__PM_CB_URL__$author\'s+scratchpad")}e;
         $url =~ s{^wp://}{https://en.wikipedia.org/wiki/};
 
         my $tag = "browse:$url|$name";
