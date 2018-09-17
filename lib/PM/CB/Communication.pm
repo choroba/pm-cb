@@ -2,6 +2,7 @@ package PM::CB::Communication;
 
 use warnings;
 use strict;
+use Syntax::Construct qw{ // };
 
 use constant {
     FREQ             => 7,
