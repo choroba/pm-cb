@@ -2,8 +2,6 @@ package PM::CB::GUI;
 
 use warnings;
 use strict;
-use Syntax::Construct qw{ // };
-
 
 use constant {
     TITLE        => 'PM::CB::G',
@@ -42,6 +40,7 @@ sub gui {
     require Tk::Balloon;
 
     $self->{mw} = my $mw = 'MainWindow'->new(-title => TITLE);
+    $self->{geometry} and $mw->geometry ($self->{geometry});
     $mw->protocol(WM_DELETE_WINDOW => sub { $self->quit });
     $mw->optionAdd('*font', "$self->{font_name} $self->{char_size}");
 
@@ -151,6 +150,26 @@ sub gui {
                       $self->{history}[ $self->{history_index} ]
                   );
               });
+
+    if (my $hf = $self->{history_file}) {
+	$hf =~ s/~/$ENV{HOME}/;
+	if (open my $fh, "<:encoding(utf-8)", $hf) {
+	    local $/ = "\x{2028}";
+	    chomp (my @hist = <$fh>);
+	    my $hl = $self->{history_size} || 0;
+	    $hl > 0 && @hist > $hl and splice @hist, 0, $#hist - $hl;
+	    my $text = $self->{read};
+	    for (@hist) {
+		my ($time, $author, $msg) = split m/\x{2063}/ => $_;
+		$text->insert(end => "$time$author: $msg", ['seen']);
+	    }
+	}
+
+	if (open my $fh, ">>:encoding(utf-8)", $hf) {
+	    select((select($fh), $| = 1)[0]);
+	    $self->{log_fh} = $fh;
+	}
+    }
 
     my ($username, $password);
 
@@ -398,17 +417,19 @@ sub show {
     my ($self, $timestamp, $author, $message, $type) = @_;
 
     my $text = $self->{read};
-    $text->insert(end => "<$timestamp> ", ['time']) unless $self->{no_time};
+    $text->insert(end => $timestamp, ['time']) unless $self->{no_time};
     my $author_separator = $type == GESTURE ? "" : ': ';
-    $text->insert(end => "[$author]$author_separator",
+    my $s_author = sprintf ($self->{author_format}, $author) . $author_separator;
+    $text->insert(end => $s_author,
                   { (PRIVATE) => 'private',
                     (PUBLIC)  => 'author',
                     (GESTURE) => 'gesture' }->{$type});
     my ($line, $column) = split /\./, $text->index('end');
     --$line;
-    $column += (3 + length($timestamp)) * ! $self->{no_time} + 2
-        + length($author_separator) + length $author;
+    $column += length($timestamp) * ! $self->{no_time} + length $s_author;
     $text->insert(end => "$message\n", ['unseen']);
+    my $lh = $self->{log_fh};
+    $lh and print $lh join "\x{2063}" => $timestamp, $s_author, $message =~ s/\n*\z/\n\x{2028}/r;
 
     my $fix_length = 0;
     while ($message =~ m{\[(\s*(?:
@@ -473,7 +494,7 @@ sub add_clickable {
                    sub { $self->{balloon}->detach($text) });
     $text->tagBind($tag, '<Button-1>',
                    sub { browse($self->url($url)) });
-    $text->tagBind($tag, '<Control-Button-1>',
+    $text->tagBind($tag, $self->{copy_url} || '<Control-Button-1>',
                    sub { $text->clipboardAppend($self->url($url)) });
 }
 
@@ -511,10 +532,13 @@ sub show_message {
 
     my $type = $message =~ s{^/me(?=\s|')}{} ? GESTURE : PUBLIC;
     $message = decode($message);
-    $timestamp = convert_time($timestamp, $tzoffset)
-                 ->strftime('%Y-%m-%d %H:%M:%S');
-
-    substr $timestamp, 0, 11, q() if 0 == index $timestamp, $self->{last_date};
+    my $ct = convert_time($timestamp, $tzoffset);
+    if ($self->{time_format}) {
+	$timestamp = $ct->strftime($self->{time_format});
+    } else {
+	$timestamp = $ct->strftime('<%Y-%m-%d %H:%M:%S> ');
+	substr $timestamp, 1, 11, q() if 0 == index $timestamp, $self->{last_date};
+    }
     $self->show($timestamp, $author, $message, $type);
 }
 
@@ -532,7 +556,7 @@ sub show_private {
     } else {
         $time = Time::Piece::localtime();
     }
-    $time = $time->strftime('%Y-%m-%d %H:%M:%S');
+    $time = $time->strftime('%Y-%m-%d %H:%M:%S ');
 
     $self->show($time, $author, $msg, PRIVATE);
 }
@@ -550,9 +574,9 @@ sub convert_time {
 sub update_time {
     my ($self, $server_time, $tzoffset, $should_update) = @_;
     my $local_time = convert_time($server_time, $tzoffset);
+    my $tfmt = $self->{date_format} || '%Y-%m-%d %H:%M:%S';
     $self->{last_update}->configure(
-        -text => 'Last update: '
-                 . $local_time->strftime('%Y-%m-%d %H:%M:%S'));
+        -text => 'Last update: ' . $local_time->strftime($tfmt));
     $self->{last_date} = $local_time->strftime('%Y-%m-%d') if $should_update;
 }
 
@@ -566,6 +590,12 @@ sub update_time {
 
     sub login_dialog {
         my ($self) = @_;
+
+        if ($self->{username} && $self->{password}) {
+	    ($login, $password) = ($self->{username}, $self->{password});
+	    $self->send_login;
+	    return;
+	}
 
         my $dialog = $self->{mw}->Dialog(
             -title          => 'Login',
