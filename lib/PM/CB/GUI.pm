@@ -439,6 +439,7 @@ sub show {
             $self->ask_title($id, $url) if $name eq $url;
             $url = '__PM_CB_URL__' . $id;
             $tag = "browse:$id|$name";
+
         } elsif ($url eq $orig) {
             substr $url, 0, 0, '__PM_CB_URL__';
             $tag = "browse:$url|$name";
@@ -557,6 +558,7 @@ sub update_time {
         $self->{to_comm}->enqueue([ 'login', $login, $password ]);
     }
 
+
     sub login_dialog {
         my ($self) = @_;
 
@@ -574,7 +576,8 @@ sub update_time {
         my $password_f = $dialog->Frame->pack(-fill => 'both');
         $password_f->Label(-text => 'Password: ')
             ->pack(-side => 'left', -fill => 'x');
-        my $password_e = $password_f->Entry(-show => '*')->pack(-side => 'right');
+        my $password_e = $password_f->Entry(-show => '*')
+            ->pack(-side => 'right');
 
         my $reply = $dialog->Show;
         if ('Cancel' eq $reply) {
