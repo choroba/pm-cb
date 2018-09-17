@@ -14,7 +14,7 @@ use PM::CB::Control;
 
 my ($bg_color, $fg_color, $author_color, $private_color, $gesture_color,
     $time_color, $font_name, $char_size, $stack_size, $seen_color, $mce,
-    $no_time, $help, $pm_url, $browse_url, $random_url, $copy_link);
+    $no_time, $help, $pm_url, $browse_url, $random_url, $copy_link, $geometry);
 
 BEGIN {
     ($bg_color, $fg_color, $author_color, $private_color, $gesture_color,
@@ -31,6 +31,7 @@ BEGIN {
         'f|fg_color=s'      => \$fg_color,
         'F|font_name=s'     => \$font_name,
         'g|gesture_color=s' => \$gesture_color,
+        'G|geometry=s'      => \$geometry,
         'h|help'            => \$help,
         'm|mce'             => \$mce,
         'n|no_time'         => \$no_time,
@@ -90,6 +91,7 @@ my $gui = 'PM::CB::GUI'->new({
     control_t     => $control_t,
     browse_url    => $browse_url,
     random_url    => $random_url,
+    geometry      => $geometry,
     copy_link     => $copy_link});
 $gui->gui;
 
@@ -140,6 +142,10 @@ The font for all the characters.
 =item B<g|gesture_color> I<color>
 
 The foreground colour to display the names of gesture authors (C</me>).
+
+=item B<G|geometry> I<width>xI<height>[+I<xpos>+I<ypos>]
+
+Geometry of the main window. Use the optimal geometry if none given.
 
 =item B<h|help>
 

@@ -43,6 +43,7 @@ sub gui {
 
     $self->{mw} = my $mw = 'MainWindow'->new(-title => TITLE);
     $mw->protocol(WM_DELETE_WINDOW => sub { $self->quit });
+    $mw->geometry($self->{geometry}) if $self->{geometry};
     $mw->optionAdd('*font', "$self->{font_name} $self->{char_size}");
 
     my $read_f = $mw->Frame->pack(-expand => 1, -fill => 'both');
@@ -267,7 +268,8 @@ sub show_options {
                           : ('threads '       . $threads::VERSION,
                              'Thread::Queue ' . $Thread::Queue::VERSION)
             ),
-        'Stack size: ' . 2 ** $self->{stack_size}
+        'Stack size: ' . 2 ** $self->{stack_size},
+        'Geometry: ' . $self->{mw}->geometry,
     )->pack(-side => 'left', -padx => 5);
 
     my $button_f = $opt_w->Frame->pack(-padx => 5, -pady => 5);
