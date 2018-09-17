@@ -14,7 +14,8 @@ use PM::CB::Control;
 
 my ($bg_color, $fg_color, $author_color, $private_color, $gesture_color,
     $time_color, $font_name, $char_size, $stack_size, $seen_color, $mce,
-    $no_time, $help, $pm_url, $browse_url, $random_url, $copy_link, $geometry);
+    $no_time, $help, $pm_url, $browse_url, $random_url, $copy_link,
+    $geometry, $log);
 
 BEGIN {
     ($bg_color, $fg_color, $author_color, $private_color, $gesture_color,
@@ -33,6 +34,7 @@ BEGIN {
         'g|gesture_color=s' => \$gesture_color,
         'G|geometry=s'      => \$geometry,
         'h|help'            => \$help,
+        'l|log=s'           => \$log,
         'm|mce'             => \$mce,
         'n|no_time'         => \$no_time,
         'p|private_color=s' => \$private_color,
@@ -92,6 +94,7 @@ my $gui = 'PM::CB::GUI'->new({
     browse_url    => $browse_url,
     random_url    => $random_url,
     geometry      => $geometry,
+    log           => $log,
     copy_link     => $copy_link});
 $gui->gui;
 
@@ -105,7 +108,7 @@ pm-cb-g - A GUI client to PerlMonks' Chatter Box
   pm-cb-g -a blue -b white -c 12 -f black -F Helvetica
           -p magenta -s 15 -S darkgray -t darkcyan -g darkgreen
           -u www.perlmonks.org -U www.perlmonks.org
-          -C Control-Button-1
+          -C Control-Button-1 -l ""
           [ -h -m -n ]
 
 =head1 OPTIONS
@@ -150,6 +153,11 @@ Geometry of the main window. Use the optimal geometry if none given.
 =item B<h|help>
 
 Prints options and arguments.
+
+=item B<l|log> I<filename>
+
+Save all messages to the given log file. Don't save any messages if
+the filename is empty.
 
 =item B<m|mce>
 

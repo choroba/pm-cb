@@ -178,6 +178,22 @@ sub gui {
         }
     });
 
+    if (length $self->{log}) {
+        if (open my $from, '<:encoding(UTF-8)', $self->{log}) {
+            my $pos = 0;
+            while (<$from>) {
+                $pos = tell $from if /\N{LINE SEPARATOR}/;
+            }
+            seek $from, $pos, 0;
+            $self->{read}->insert('end', $_, ['seen']) while <$from>;
+            $self->{read}->see('end');
+        }
+
+        open $self->{log_fh}, '>>:encoding(UTF-8)', $self->{log}
+            or die "$self->{log}: $!";
+        print { $self->{log_fh} } "\N{LINE SEPARATOR}";
+    }
+
     $mw->after(1, sub { $self->login_dialog; $self->{write}->focus; });
 
     Tk::MainLoop();
@@ -270,6 +286,7 @@ sub show_options {
             ),
         'Stack size: ' . 2 ** $self->{stack_size},
         'Geometry: ' . $self->{mw}->geometry,
+        $self->{log_fh} ? 'Log file: ' . $self->{log} : (),
     )->pack(-side => 'left', -padx => 5);
 
     my $button_f = $opt_w->Frame->pack(-padx => 5, -pady => 5);
@@ -420,6 +437,10 @@ sub show {
     $column += (3 + length($timestamp)) * ! $self->{no_time} + 2
         + length($author_separator) + length $author;
     $text->insert(end => "$message\n", ['unseen']);
+
+    $self->{log_fh}->printflush(
+        "<$timestamp> [$author]$author_separator$message\n"
+    ) if $self->{log_fh};
 
     my $fix_length = 0;
     while ($message =~ m{\[(\s*(?:
