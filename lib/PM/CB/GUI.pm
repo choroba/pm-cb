@@ -161,7 +161,7 @@ sub gui {
 	    my $text = $self->{read};
 	    for (@hist) {
 		my ($time, $author, $msg) = split m/\x{2063}/ => $_;
-		$text->insert(end => "$time$author: $msg", ['seen']);
+		$text->insert(end => "$time$author$msg", ['seen']);
 	    }
 	}
 
