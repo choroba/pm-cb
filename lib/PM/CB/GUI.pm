@@ -494,7 +494,8 @@ sub add_clickable {
     $text->tagBind($tag, '<Button-1>',
                    sub { browse($self->url($url)) });
     $text->tagBind($tag, $self->{copy_url} || '<Control-Button-1>',
-                   sub { $text->clipboardAppend($self->url($url)) });
+                   sub { $text->clipboardClear;
+		         $text->clipboardAppend($self->url($url)) });
 }
 
 
