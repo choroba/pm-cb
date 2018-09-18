@@ -11,9 +11,13 @@ use lib "$FindBin::Bin/lib";
 use PM::CB::GUI;
 use PM::CB::Control;
 
-my (%conf, $help);
+my %conf;
 
 BEGIN {
+    my $pid = fork;
+    $pid < 0 and die "Cannot fork: $!\n";
+    $pid     and exit 0;
+
     %conf = (
         bg_color      => 'white',
         fg_color      => 'black',
@@ -33,6 +37,7 @@ BEGIN {
         time_format   => '<hh:mm:ss>',
         copy_url      => 'Control-Button-1',
         random_url    => 0);
+
     # /me considers File::HomeDir overly complicated
     my $home = $ENV{HOME} || $ENV{USERPROFILE} || $ENV{HOMEPATH};
     foreach my $rcf (grep { -s }
@@ -73,7 +78,7 @@ BEGIN {
         'F|font_name=s'     => \$conf{font_name},
         'g|gesture_color=s' => \$conf{gesture_color},
         'G|geometry=s'      => \$conf{geometry},
-        'h|help'            => \$help,
+        'h|help'            => \my $help,
         'l|log=s'           => \$conf{history_file},
         'm|mce'             => \$conf{mce},
         'n|no_time'         => \$conf{no_time},
@@ -89,7 +94,6 @@ BEGIN {
 
     pod2usage(-verbose => 1, -exitval => 0) if $help;
 }
-
 
 use if $conf{mce} => 'MCE::Hobo';
 use if $conf{mce} => 'MCE::Shared';
