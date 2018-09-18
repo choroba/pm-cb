@@ -286,7 +286,8 @@ sub show_options {
                           : ('threads '       . $threads::VERSION,
                              'Thread::Queue ' . $Thread::Queue::VERSION)
             ),
-        'Stack size: ' . 2 ** $self->{stack_size}
+        'Stack size: ' . 2 ** $self->{stack_size},
+        'Geometry: ' . $self->{mw}->geometry,
     )->pack(-side => 'left', -padx => 5);
 
     my $button_f = $opt_w->Frame->pack(-padx => 5, -pady => 5);
