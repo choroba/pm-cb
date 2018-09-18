@@ -149,6 +149,10 @@ The background color of the application.
 
 The size of all the characters.
 
+=item B<C|copy_link> I<event>
+
+The event that copies the link under mouse cursor to the clipboard.
+
 =item B<f|fg_color> I<color>
 
 The foreground colour of the new messages.

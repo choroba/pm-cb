@@ -241,6 +241,7 @@ sub show_options {
         [ 'Timestamp Color'  => 'time_color' ],
         [ 'Seen Color'       => 'seen_color' ],
         [ 'Browser URL'      => 'browse_url' ],
+        [ 'Copy Link'        => 'copy_link' ],
     );
 
     my $new;
@@ -319,9 +320,17 @@ sub update_options {
     my ($self, $show_time, $new) = @_;
 
     my $old_url = $self->{pm_url};
+    my $old_copy_link = $self->{copy_link};
     for my $opt (keys %$new) {
         $self->{$opt} = $new->{$opt} if ! exists $self->{$opt}
                                      || $self->{$opt} ne $new->{$opt};
+    }
+
+    for my $tag (grep /^browse:/, $self->{read}->tagNames) {
+        $self->{read}->tagBind(
+            $tag, "<$self->{copy_link}>",
+            $self->{read}->tagBind($tag, "<$old_copy_link>"));
+        $self->{read}->tagBind($tag, "<$old_copy_link>", "");
     }
 
     $self->{mw}->optionAdd('*font', "$self->{font_name} $self->{char_size}");
@@ -493,7 +502,7 @@ sub add_clickable {
                    sub { $self->{balloon}->detach($text) });
     $text->tagBind($tag, '<Button-1>',
                    sub { browse($self->url($url)) });
-    $text->tagBind($tag, $self->{copy_url} || '<Control-Button-1>',
+    $text->tagBind($tag, $self->{copy_url},
                    sub { $text->clipboardClear;
 		         $text->clipboardAppend($self->url($url)) });
 }
@@ -635,7 +644,7 @@ sub quit {
         '<Alt+,> previous history item',
         '<Alt+.> next history item',
         '<Shift+Insert> paste clipboard',
-        '<Control+Mouse1> copy link',
+        '<{copy_link}> copy link',
         '<Esc> to exit help',
     );
     sub help {
@@ -643,6 +652,7 @@ sub quit {
         $self->{opt_h}->configure(-state => 'disabled');
         my $top = $self->{mw}->Toplevel(-title => TITLE . ' Help');
         my $text = $top->ROText(height => 1 + @help)->pack;
+        s/\{(.+?)\}/$self->{$1}/g for @help;
         $text->insert('end', "$_\n") for @help[ 0 .. $#help - 1 ];
         $text->insert('end', "\n$help[-1]");
 
