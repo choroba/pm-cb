@@ -35,7 +35,7 @@ BEGIN {
         pm_url        => 'www.perlmonks.org',
         date_format   => 'YYYY-MM-DD hh:mm:ss',
         time_format   => '<hh:mm:ss>',
-        copy_url      => 'Control-Button-1',
+        copy_link     => 'Control-Button-1',
         random_url    => 0);
 
     # /me considers File::HomeDir overly complicated
@@ -59,6 +59,7 @@ BEGIN {
                 =~ s{font_size}{char_size}ir
                 =~ s{font_family}{char_name}ir
                 =~ s{show_time(?:stamps?)}{show_time}ir
+                =~ s{copy_url$}{copy_link}ir
               } = $v
                 =~ s{U\+?([0-9A-Fa-f]{2,7})}{chr hex $1}ger
                 =~ s{^(?:no|false)$}{0}ir
@@ -68,12 +69,14 @@ BEGIN {
         }
     exists $conf{show_time} and $conf{no_time} = !delete $conf{show_time};
     $conf{font_name} =~ m/\s/ and $conf{font_name} = "{".$conf{font_name}."}";
+    $conf{copy_link} =~ s{^<*(.*?)>*$}{<$1>};
     exists $conf{xmodifiers} && !$conf{xmodifiers} and delete $ENV{XMODIFIERS};
 
     GetOptions(
         'a|author_color=s'  => \$conf{author_color},
         'b|bg_color=s'      => \$conf{bg_color},
         'c|char_size=i'     => \$conf{char_size},
+        'C|copy_link=s'     => \$conf{copy_link},
         'f|fg_color=s'      => \$conf{fg_color},
         'F|font_name=s'     => \$conf{font_name},
         'g|gesture_color=s' => \$conf{gesture_color},
