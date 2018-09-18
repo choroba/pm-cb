@@ -151,26 +151,6 @@ sub gui {
                   );
               });
 
-    if (my $hf = $self->{history_file}) {
-	$hf =~ s/~/$ENV{HOME}/;
-	if (open my $fh, "<:encoding(utf-8)", $hf) {
-	    local $/ = "\x{2028}";
-	    chomp (my @hist = <$fh>);
-	    my $hl = $self->{history_size} || 0;
-	    $hl > 0 && @hist > $hl and splice @hist, 0, $#hist - $hl;
-	    my $text = $self->{read};
-	    for (@hist) {
-		my ($time, $author, $msg) = split m/\x{2063}/ => $_;
-		$text->insert(end => "$time$author$msg", ['seen']);
-	    }
-	}
-
-	if (open my $fh, ">>:encoding(utf-8)", $hf) {
-	    select((select($fh), $| = 1)[0]);
-	    $self->{log_fh} = $fh;
-	}
-    }
-
     my ($username, $password);
 
     $mw->repeat(1000, sub {
@@ -195,6 +175,27 @@ sub gui {
             $dispatch{$type}->();
         }
     });
+
+    if (my $hf = $self->{history_file}) {
+	$hf =~ s/~/$ENV{HOME}/;
+	if (open my $fh, '<:encoding(utf-8)', $hf) {
+	    local $/ = "\x{2028}";
+	    chomp (my @hist = <$fh>);
+	    my $hl = $self->{history_size} || 0;
+	    $hl > 0 && @hist > $hl and splice @hist, 0, $#hist - $hl;
+	    my $text = $self->{read};
+	    for (@hist) {
+		my ($time, $author, $msg) = split m/\x{2063}/ => $_;
+		$text->insert(end => "$time$author$msg", ['seen']);
+	    }
+	    $self->{read}->see('end');
+	}
+
+	if (open my $fh, '>>:encoding(utf-8)', $hf) {
+	    select((select($fh), $| = 1)[0]);
+	    $self->{log_fh} = $fh;
+	}
+    }
 
     $mw->after(1, sub { $self->login_dialog; $self->{write}->focus; });
 
@@ -288,6 +289,7 @@ sub show_options {
             ),
         'Stack size: ' . 2 ** $self->{stack_size},
         'Geometry: ' . $self->{mw}->geometry,
+        $self->{log_fh} ? 'Log file: ' . $self->{history_file} : (),
     )->pack(-side => 'left', -padx => 5);
 
     my $button_f = $opt_w->Frame->pack(-padx => 5, -pady => 5);
@@ -439,7 +441,7 @@ sub show {
     $column += length($timestamp) * ! $self->{no_time} + length $s_author;
     $text->insert(end => "$message\n", ['unseen']);
     my $lh = $self->{log_fh};
-    $lh and print $lh join "\x{2063}" => $timestamp, $s_author, $message =~ s/\n*\z/\n\x{2028}/r;
+    $lh and $lh->printflush(join "\x{2063}" => $timestamp, $s_author, $message =~ s/\n*\z/\n\x{2028}/r);
 
     my $fix_length = 0;
     while ($message =~ m{\[(\s*(?:
