@@ -520,6 +520,7 @@ sub show_list {
                              $self->url("__PM_CB_URL__$monk"));
     }
     $self->{read}->insert('end', "\n");
+    $self->{read}->see('end');
 }
 
 
