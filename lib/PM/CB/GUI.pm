@@ -477,7 +477,7 @@ sub show {
             $url = '__PM_CB_URL__' . $id;
             $tag = "browse:$id|$name";
 
-        } elsif ($url eq $orig) {
+        } elsif ($orig =~ /^\Q$url\E\|?/) {
             substr $url, 0, 0, '__PM_CB_URL__';
             $tag = "browse:$url|$name";
         }
