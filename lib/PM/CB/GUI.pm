@@ -324,18 +324,25 @@ sub show_options {
 sub update_options {
     my ($self, $show_time, $new) = @_;
 
-    my $old_url = $self->{pm_url};
-    my $old_copy_link = $self->{copy_link};
+    my %old = ( pm_url => $self->{pm_url},
+        map {($_ => [ split m/\s+/ => $self->{$_} ])} qw( copy_link paste_keys ));
     for my $opt (keys %$new) {
         $self->{$opt} = $new->{$opt} if ! exists $self->{$opt}
                                      || $self->{$opt} ne $new->{$opt};
     }
 
     for my $tag (grep /^browse:/, $self->{read}->tagNames) {
-        $self->{read}->tagBind(
-            $tag, "<$self->{copy_link}>",
-            $self->{read}->tagBind($tag, "<$old_copy_link>"));
-        $self->{read}->tagBind($tag, "<$old_copy_link>", "");
+	for my $old_event (@{ $old{copy_link} }) {
+            my $binding = $self->{read}->tagBind($tag, $old_event);
+            $self->{read}->tagBind($tag, $old_event, "");
+            $self->{read}->tagBind($tag, $_, $binding)
+                for split m/\s+/ => $self->{copy_link};
+        }
+    }
+    for my $old_event (@{ $old{paste_keys} }) {
+        my $binding = $self->{write}->bind($old_event);
+        $self->{write}->bind($old_event, "");
+        $self->{write}->bind($_, $binding) for split m/\s+/ => $self->{paste_keys};
     }
 
     $self->{mw}->optionAdd('*font', "$self->{font_name} $self->{char_size}");
@@ -357,7 +364,7 @@ sub update_options {
     $self->{no_time} = ! $show_time;
 
     $self->{to_control}->enqueue(['random_url', $self->{random_url}]);
-    if ($old_url ne $self->{pm_url}) {
+    if ($old{pm_url} ne $self->{pm_url}) {
         $self->{to_comm}->enqueue(['url', $self->{pm_url}]);
         $self->send_login;
     }
