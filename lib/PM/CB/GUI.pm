@@ -72,11 +72,12 @@ sub gui {
         -wrap       => 'word',
     )->pack(-fill => 'x');
 
-    $write->bind('<Shift-Insert>', sub {
+    my $cb_paste = sub {
         my $paste = eval { $write->SelectionGet }
             // eval { $write->SelectionGet(-selection => 'CLIPBOARD') };
         $write->insert('insert', $paste) if length $paste;
-    });
+    };
+    $write->bind("<$_>", $cb_paste) for qw( Shift-Insert Pause XF86Paste );
 
     my $button_f = $mw->Frame->pack;
     my $send_b = $button_f->Button(-text => 'Send',
