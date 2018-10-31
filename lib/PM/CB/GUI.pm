@@ -74,11 +74,12 @@ sub gui {
         -wrap       => 'word',
     )->pack(-fill => 'x');
 
-    $write->bind('<Shift-Insert>', sub {
+    my $cb_paste = sub {
         my $paste = eval { $write->SelectionGet }
             // eval { $write->SelectionGet(-selection => 'CLIPBOARD') };
         $write->insert('insert', $paste) if length $paste;
-    });
+    };
+    $write->bind("<$_>", $cb_paste) for split ' ', $self->{paste_keys};
 
     my $button_f = $mw->Frame->pack;
     my $send_b = $button_f->Button(-text => 'Send',
@@ -240,6 +241,7 @@ sub show_options {
         [ 'Seen Color'       => 'seen_color' ],
         [ 'Browser URL'      => 'browse_url' ],
         [ 'Copy Link'        => 'copy_link' ],
+        [ 'Paste keys'       => 'paste_keys' ],
     );
 
     my $new;
@@ -319,18 +321,28 @@ sub show_options {
 sub update_options {
     my ($self, $show_time, $new) = @_;
 
-    my $old_url = $self->{pm_url};
-    my $old_copy_link = $self->{copy_link};
+    my %old = ( pm_url => $self->{pm_url},
+                map +($_ => [ split ' ', $self->{$_} ]),
+                    qw( copy_link paste_keys ));
+
     for my $opt (keys %$new) {
         $self->{$opt} = $new->{$opt} if ! exists $self->{$opt}
                                      || $self->{$opt} ne $new->{$opt};
     }
 
     for my $tag (grep /^browse:/, $self->{read}->tagNames) {
-        $self->{read}->tagBind(
-            $tag, "<$self->{copy_link}>",
-            $self->{read}->tagBind($tag, "<$old_copy_link>"));
-        $self->{read}->tagBind($tag, "<$old_copy_link>", "");
+        for my $old_event (@{ $old{copy_link} }) {
+            my $binding = $self->{read}->tagBind($tag, "<$old_event>");
+            $self->{read}->tagBind($tag, "<$old_event>", "");
+            $self->{read}->tagBind($tag, "<$_>", $binding)
+                for split ' ', $self->{copy_link};
+        }
+    }
+    for my $old_event (@{ $old{paste_keys} }) {
+        my $binding = $self->{write}->bind("<$old_event>");
+        $self->{write}->bind("<$old_event>", "");
+        $self->{write}->bind("<$_>", $binding)
+            for split ' ', $self->{paste_keys};
     }
 
     $self->{mw}->optionAdd('*font', "$self->{font_name} $self->{char_size}");
@@ -352,7 +364,7 @@ sub update_options {
     $self->{no_time} = ! $show_time;
 
     $self->{to_control}->enqueue(['random_url', $self->{random_url}]);
-    if ($old_url ne $self->{pm_url}) {
+    if ($old{pm_url} ne $self->{pm_url}) {
         $self->{to_comm}->enqueue(['url', $self->{pm_url}]);
         $self->send_login;
     }
@@ -505,9 +517,10 @@ sub add_clickable {
                    sub { $self->{balloon}->detach($text) });
     $text->tagBind($tag, '<Button-1>',
                    sub { browse($self->url($url)) });
-    $text->tagBind($tag, "<$self->{copy_link}>",
+    $text->tagBind($tag, "<$_>",
                    sub { $text->clipboardClear;
-                         $text->clipboardAppend($self->url($url)) });
+                         $text->clipboardAppend($self->url($url)) }
+    ) for split ' ', $self->{copy_link};
 }
 
 
@@ -637,28 +650,28 @@ sub quit {
 }
 
 
-{   my @help = (
+sub help {
+    my ($self) = @_;
+
+    my @help = (
         '<Alt+,> previous history item',
         '<Alt+.> next history item',
-        '<Shift+Insert> paste clipboard',
+        '<{paste_keys}> paste clipboard',
         '<{copy_link}> copy link',
         '<Esc> to exit help',
     );
-    sub help {
-        my ($self) = @_;
-        $self->{opt_h}->configure(-state => 'disabled');
-        my $top = $self->{mw}->Toplevel(-title => TITLE . ' Help');
-        my $text = $top->ROText(height => 1 + @help)->pack;
-        s/\{(.+?)\}/$self->{$1}/g for @help;
-        $text->insert('end', "$_\n") for @help[ 0 .. $#help - 1 ];
-        $text->insert('end', "\n$help[-1]");
+    $self->{opt_h}->configure(-state => 'disabled');
+    my $top = $self->{mw}->Toplevel(-title => TITLE . ' Help');
+    my $text = $top->ROText(height => 1 + @help)->pack;
+    s/\{(.+?)\}/$self->{$1}/g for @help;
+    $text->insert('end', "$_\n") for @help[ 0 .. $#help - 1 ];
+    $text->insert('end', "\n$help[-1]");
 
-        $top->bind('<Escape>', my $end = sub {
-                       $top->DESTROY;
-                       $self->{opt_h}->configure(-state => 'normal');
-                   });
-        $top->protocol(WM_DELETE_WINDOW => $end);
-    }
+    $top->bind('<Escape>', my $end = sub {
+                   $top->DESTROY;
+                   $self->{opt_h}->configure(-state => 'normal');
+               });
+    $top->protocol(WM_DELETE_WINDOW => $end);
 }
 
 __PACKAGE__
