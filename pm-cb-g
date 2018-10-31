@@ -15,7 +15,7 @@ use PM::CB::Control;
 my ($bg_color, $fg_color, $author_color, $private_color, $gesture_color,
     $time_color, $font_name, $char_size, $stack_size, $seen_color, $mce,
     $no_time, $help, $pm_url, $browse_url, $random_url, $copy_link,
-    $geometry, $log);
+    $geometry, $log, $paste_keys);
 
 BEGIN {
     ($bg_color, $fg_color, $author_color, $private_color, $gesture_color,
@@ -23,6 +23,8 @@ BEGIN {
      $no_time, $help, $pm_url, $random_url, $copy_link)
     = qw( white black blue magenta darkgreen darkcyan darkgray Helvetica
           12 15 0 0 0 www.perlmonks.org 0 Control-Button-1);
+
+    $paste_keys = 'Shift-Insert XF86Paste';
 
     GetOptions(
         'a|author_color=s'  => \$author_color,
@@ -38,6 +40,7 @@ BEGIN {
         'm|mce'             => \$mce,
         'n|no_time'         => \$no_time,
         'p|private_color=s' => \$private_color,
+        'P|paste_keys=s'    => \$paste_keys,
         'r|random_url'      => \$random_url,
         's|stack_size=i'    => \$stack_size,
         'S|seen_color=s'    => \$seen_color,
@@ -95,7 +98,9 @@ my $gui = 'PM::CB::GUI'->new({
     random_url    => $random_url,
     geometry      => $geometry,
     log           => $log,
-    copy_link     => $copy_link});
+    copy_link     => $copy_link,
+    paste_keys    => $paste_keys});
+
 $gui->gui;
 
 
@@ -130,9 +135,9 @@ The background color of the application.
 
 The size of all the characters.
 
-=item B<C|copy_link> I<event>
+=item B<C|copy_link> I<event(s)>
 
-The event that copies the link under mouse cursor to the clipboard.
+The event(s) that copies the link under mouse cursor to the clipboard.
 
 =item B<f|fg_color> I<color>
 
@@ -171,6 +176,10 @@ Don't show time stamps.
 =item B<p|private_color> I<color>
 
 The color for the authors of private messages.
+
+=item B<p|paste_keys> I<event(s)>
+
+The event(s) that paste text from the clipboard.
 
 =item B<r|random_url>
 
