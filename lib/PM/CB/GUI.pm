@@ -650,28 +650,28 @@ sub quit {
 }
 
 
-{   my @help = (
+sub help {
+    my ($self) = @_;
+
+    my @help = (
         '<Alt+,> previous history item',
         '<Alt+.> next history item',
         '<{paste_keys}> paste clipboard',
         '<{copy_link}> copy link',
         '<Esc> to exit help',
     );
-    sub help {
-        my ($self) = @_;
-        $self->{opt_h}->configure(-state => 'disabled');
-        my $top = $self->{mw}->Toplevel(-title => TITLE . ' Help');
-        my $text = $top->ROText(height => 1 + @help)->pack;
-        s/\{(.+?)\}/$self->{$1}/g for @help;
-        $text->insert('end', "$_\n") for @help[ 0 .. $#help - 1 ];
-        $text->insert('end', "\n$help[-1]");
+    $self->{opt_h}->configure(-state => 'disabled');
+    my $top = $self->{mw}->Toplevel(-title => TITLE . ' Help');
+    my $text = $top->ROText(height => 1 + @help)->pack;
+    s/\{(.+?)\}/$self->{$1}/g for @help;
+    $text->insert('end', "$_\n") for @help[ 0 .. $#help - 1 ];
+    $text->insert('end', "\n$help[-1]");
 
-        $top->bind('<Escape>', my $end = sub {
-                       $top->DESTROY;
-                       $self->{opt_h}->configure(-state => 'normal');
-                   });
-        $top->protocol(WM_DELETE_WINDOW => $end);
-    }
+    $top->bind('<Escape>', my $end = sub {
+                   $top->DESTROY;
+                   $self->{opt_h}->configure(-state => 'normal');
+               });
+    $top->protocol(WM_DELETE_WINDOW => $end);
 }
 
 __PACKAGE__
