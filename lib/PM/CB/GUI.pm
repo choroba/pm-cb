@@ -77,7 +77,7 @@ sub gui {
             // eval { $write->SelectionGet(-selection => 'CLIPBOARD') };
         $write->insert('insert', $paste) if length $paste;
     };
-    $write->bind("<$_>", $cb_paste) for qw( Shift-Insert Pause XF86Paste );
+    $write->bind($_, $cb_paste) for split m/\s+/ => $self->{paste_keys};
 
     my $button_f = $mw->Frame->pack;
     my $send_b = $button_f->Button(-text => 'Send',
@@ -244,6 +244,7 @@ sub show_options {
         [ 'Seen Color'       => 'seen_color' ],
         [ 'Browser URL'      => 'browse_url' ],
         [ 'Copy Link'        => 'copy_link' ],
+        [ 'Paste keys'       => 'paste_keys' ],
     );
 
     my $new;
@@ -506,9 +507,10 @@ sub add_clickable {
                    sub { $self->{balloon}->detach($text) });
     $text->tagBind($tag, '<Button-1>',
                    sub { browse($self->url($url)) });
-    $text->tagBind($tag, $self->{copy_link},
+    $text->tagBind($tag, $_,
                    sub { $text->clipboardClear;
-		         $text->clipboardAppend($self->url($url)) });
+		         $text->clipboardAppend($self->url($url)) })
+	for split m/\s+/ => $self->{copy_link};
 }
 
 

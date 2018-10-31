@@ -36,6 +36,7 @@ BEGIN {
         date_format   => 'YYYY-MM-DD hh:mm:ss',
         time_format   => '<hh:mm:ss>',
         copy_link     => 'Control-Button-1',
+        paste_keys    => 'Shift-Insert XF86Paste',
         random_url    => 0);
 
     # /me considers File::HomeDir overly complicated
@@ -67,11 +68,6 @@ BEGIN {
             }
 
         }
-    exists $conf{show_time} and $conf{no_time} = !delete $conf{show_time};
-    $conf{font_name} =~ m/\s/ and $conf{font_name} = "{".$conf{font_name}."}";
-    $conf{copy_link} =~ s{^<*(.*?)>*$}{<$1>};
-    exists $conf{xmodifiers} && !$conf{xmodifiers} and delete $ENV{XMODIFIERS};
-
     GetOptions(
         'a|author_color=s'  => \$conf{author_color},
         'b|bg_color=s'      => \$conf{bg_color},
@@ -86,6 +82,7 @@ BEGIN {
         'm|mce'             => \$conf{mce},
         'n|no_time'         => \$conf{no_time},
         'p|private_color=s' => \$conf{private_color},
+        'P|paste_keys=s'    => \$conf{paste_keys},
         'r|random_url'      => \$conf{random_url},
         's|stack_size=i'    => \$conf{stack_size},
         'S|seen_color=s'    => \$conf{seen_color},
@@ -94,6 +91,14 @@ BEGIN {
         'U|browse_url=s'    => \$conf{browse_url},
     ) or pod2usage(-verbose => 0, -exitval => 1);
     $conf{browse_url} //= $conf{pm_url};
+
+    exists $conf{show_time} and $conf{no_time} = !delete $conf{show_time};
+    $conf{font_name} =~ m/\s/ and $conf{font_name} = "{".$conf{font_name}."}";
+    foreach my $attr (qw( copy_link paste_keys )) {
+	$conf{$attr} = join " " => map { s{^<*(.*?)>*$}{<$1>}r }
+	    split m/\s+/ => $conf{$attr};
+	}
+    exists $conf{xmodifiers} && !$conf{xmodifiers} and delete $ENV{XMODIFIERS};
 
     pod2usage(-verbose => 1, -exitval => 0) if $help;
 }
@@ -161,6 +166,11 @@ The size of all the characters.
 =item B<C|copy_link> I<event>
 
 The event that copies the link under mouse cursor to the clipboard.
+
+=item B<P|paste_keys> I<event(s)>
+
+The event(s) that pastes the clipboard content to the current position.
+Events may be separated by spaces.
 
 =item B<f|fg_color> I<color>
 
