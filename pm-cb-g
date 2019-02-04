@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/perl
 use warnings;
 use strict;
 use Syntax::Construct qw{ // };
@@ -99,6 +99,7 @@ my $gui = 'PM::CB::GUI'->new({
     geometry      => $geometry,
     log           => $log,
     copy_link     => $copy_link,
+    log           => "mylog.log",
     paste_keys    => $paste_keys});
 
 $gui->gui;
