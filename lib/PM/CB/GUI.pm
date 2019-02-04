@@ -455,48 +455,63 @@ sub show {
     ) if $self->{log_fh};
 
     my $fix_length = 0;
-    while ($message =~ m{\[(\s*(?:
-                                 https?
-                                 | (?:meta)?mod | doc
-                                 | id
-                                 | wp
-                                 | pad
-                               )://.+?\s*|\S+)\]}gx
-    ) {
-        my $orig = $1;
-        my ($url, $name) = split /\|/, $orig;
-        my $from = $line . '.'
-                 . ($column + pos($message)
-                    - length(length $name ? "[$url|$name]" : "[$url]")
-                    - $fix_length);
-        my $to = $line . '.' . ($column - $fix_length + pos $message);
-        $text->delete($from, $to);
+    my $start_pos = 0;
+    while ($message =~ m!
+            (.*?(?=($|<c(ode)?>)))  # Non-greedy up to <code> or end of line
+            (
+                ($ |                # followed by end of line
+                    <(c|code)>      # or <c> or <code>
+                     .*?            # some stuff
+                    </ \g{-1} >     # and </c> or </code> as per above
+                )
+            )?
+        !gx) {
+        my $not_code = $1;
+        while ($not_code =~ m{\[(\s*(?:
+                                     https?
+                                     | (?:meta)?mod | doc
+                                     | id
+                                     | wp
+                                     | pad
+                                   )://.+?\s*|\S+)\]}gx
+        ) {
+            my $orig = $1;
+            my ($url, $name) = split /\|/, $orig;
+            my $pos = $start_pos + pos($not_code);
+            my $from = $line . '.'
+                     . ($column +  $pos
+                        - length(length $name ? "[$url|$name]" : "[$url]")
+                        - $fix_length);
+            my $to = $line . '.' . ($column - $fix_length + $pos);
+            $text->delete($from, $to);
 
-        $name = $url unless length $name;
-        s/^\s+//, s/\s+$// for $name, $url;
-        $url =~ s{^(?:(?:meta)?mod|doc)://}{http://p3rl.org/};
-        $url =~ s{^pad://([^|\]]*)}
-                 {length $1
-                      ? $self->url("__PM_CB_URL__$1's+scratchpad")
-                      : $self->url("__PM_CB_URL__$author\'s+scratchpad")}e;
-        $url =~ s{^wp://}{https://en.wikipedia.org/wiki/};
+            $name = $url unless length $name;
+            s/^\s+//, s/\s+$// for $name, $url;
+            $url =~ s{^(?:(?:meta)?mod|doc)://}{http://p3rl.org/};
+            $url =~ s{^pad://([^|\]]*)}
+                     {length $1
+                          ? $self->url("__PM_CB_URL__$1's+scratchpad")
+                          : $self->url("__PM_CB_URL__$author\'s+scratchpad")}e;
+            $url =~ s{^wp://}{https://en.wikipedia.org/wiki/};
 
-        my $tag = "browse:$url|$name";
+            my $tag = "browse:$url|$name";
 
-        if ($url =~ m{^id://([0-9]+)}) {
-            my $id = $1;
-            $self->ask_title($id, $url) if $name eq $url;
-            $url = '__PM_CB_URL__' . $id;
-            $tag = "browse:$id|$name";
+            if ($url =~ m{^id://([0-9]+)}) {
+                my $id = $1;
+                $self->ask_title($id, $url) if $name eq $url;
+                $url = '__PM_CB_URL__' . $id;
+                $tag = "browse:$id|$name";
 
-        } elsif ($orig =~ /^\Q$url\E\|?/) {
-            substr $url, 0, 0, '__PM_CB_URL__';
-            $tag = "browse:$url|$name";
+            } elsif ($orig =~ /^\Q$url\E\|?/) {
+                substr $url, 0, 0, '__PM_CB_URL__';
+                $tag = "browse:$url|$name";
+            }
+
+            $fix_length += length($orig) - length($name);
+
+            $self->add_clickable($name, $tag, $from, $url);
         }
-
-        $fix_length += length($orig) - length($name);
-
-        $self->add_clickable($name, $tag, $from, $url);
+        $start_pos = pos($message);
     }
     $text->see('end');
 }
