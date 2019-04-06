@@ -177,7 +177,7 @@ Don't show time stamps.
 
 The color for the authors of private messages.
 
-=item B<p|paste_keys> I<event(s)>
+=item B<P|paste_keys> I<event(s)>
 
 The event(s) that paste text from the clipboard.
 
