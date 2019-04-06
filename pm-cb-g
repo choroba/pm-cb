@@ -24,7 +24,8 @@ BEGIN {
     = qw( white black blue magenta darkgreen darkcyan darkgray Helvetica
           12 15 0 0 0 www.perlmonks.org 0 Control-Button-1);
 
-    $paste_keys = 'Shift-Insert XF86Paste';
+    $paste_keys = 'Shift-Insert';
+    $paste_keys .= ' XF86Paste' if $^O ne 'MSWin32';
 
     GetOptions(
         'a|author_color=s'  => \$author_color,
