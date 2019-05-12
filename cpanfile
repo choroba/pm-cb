@@ -20,4 +20,5 @@ requires 'charnames';
 requires 'Syntax::Construct';
 requires 'Tk';
 requires 'WWW::Mechanize';
+requires 'HTML::Entities';
 requires 'XML::LibXML';

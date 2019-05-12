@@ -2,11 +2,13 @@
 use warnings;
 use strict;
 use feature qw{ say };
+use open ":std", ":encoding(utf8)";
 
 use Term::ANSIColor;
 use Term::ReadKey;
 use XML::LibXML;
 use WWW::Mechanize;
+use HTML::Entities;
 
 my $debug = @ARGV && '-d' eq shift;
 
@@ -14,14 +16,14 @@ use constant {
     PM_URL => 'http://www.perlmonks.org/bare/?node_id=',
     FREQ   => 7,
     # Node ids:
-    LOGIN => 109,
-    CB    => 207304,
+    LOGIN  => 109,
+    CB     => 207304,
 };
-
 
 print "User? ";
 chomp( my $user = <STDIN> );
 ReadMode('noecho');
+
 print "Pass? ";
 chomp( my $pass = <STDIN> );
 ReadMode('normal');
@@ -45,7 +47,14 @@ while (1) {
     $url .= ";fromid=$from_id" if defined $from_id;
     $mech->get($url);
 
-    my $xml = 'XML::LibXML'->load_xml(string => $mech->content);
+    my $xml = eval { 'XML::LibXML'->load_xml(string => $mech->content) };
+    unless ( $xml )
+    {
+        say "Problem parsing XML from $url: ", $@ || "...unknown error";
+        next;
+    }
+
+    $xml->setEncoding("UTF-8");
 
     my $time = $xml->findvalue('/chatter/info/@gentimeGMT');
     print STDERR colored(['bright_black'], $time), "\r";
@@ -66,7 +75,7 @@ while (1) {
         } else {
             say colored(['bold blue'],
                         '[', $message->findvalue('author'), '] '),
-                $message->findvalue('text');
+                decode_entities( $message->findvalue('text') );
             undef $seen{$id};
         }
     }
@@ -77,3 +86,4 @@ while (1) {
     $previous = $xml;
     sleep FREQ;
 }
+
