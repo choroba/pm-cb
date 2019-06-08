@@ -17,6 +17,7 @@ requires 'Time::HiRes';
 requires 'Time::Piece';
 requires 'charnames';
 
+requires 'LWP::Protocol::https';
 requires 'Syntax::Construct';
 requires 'Tk';
 requires 'WWW::Mechanize';

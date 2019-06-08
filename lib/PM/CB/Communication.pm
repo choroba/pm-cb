@@ -17,7 +17,6 @@ use constant {
 
 
 sub new {
-    $ENV{PERL_LWP_SSL_VERIFY_HOSTNAME} = 0;
     my ($class, $struct) = @_;
     bless $struct, $class
 }
@@ -32,8 +31,11 @@ sub communicate {
     require WWW::Mechanize;
     require Time::HiRes;
 
-    my $mech = $self->{mech} =
-        'WWW::Mechanize'->new( timeout => 16, autocheck => 0 );
+    my $mech = $self->{mech}
+        = 'WWW::Mechanize'->new(
+            timeout => 16,
+            autocheck => 0,
+            ssl_opts => $self->ssl_opts);
 
     my ($from_id, $previous, %seen);
 
@@ -135,6 +137,7 @@ sub handle_url {
     my ($self, @message) = @_;
     if (@message && $message[0] ne $self->{pm_url}) {
         $self->{pm_url} = $message[0];
+        $self->{mech}->ssl_opts(%{ $self->ssl_opts });
         $self->{to_gui}->enqueue(['send_login']);
     } else {
         $self->{to_gui}->enqueue(['url', $self->{pm_url}]);
@@ -267,6 +270,16 @@ sub mech_content {
     # not windows-1252.
     $content =~ s/windows-1252/utf-8/i;
     return $content
+}
+
+
+sub ssl_opts {
+    {verify_hostname => $_[0]->is_url_verifiable ? 1 : 0}
+}
+
+
+sub is_url_verifiable {
+    $_[0]{pm_url} =~ /^(?:www\.)?perlmonks\.(?:com|net|org)$/
 }
 
 
