@@ -256,22 +256,33 @@ sub show_options {
         )->pack(-side => 'right');
     }
 
-    my $old_url = $self->{pm_url} // q();
+    my $old_pm_url = $self->{pm_url} // q();
     my $old_random = $self->{random_url};
+    my $new_random = $old_random;
     my $f = $opt_f->Frame->pack(-fill => 'x');
     $f->Label(-text => 'PerlMonks URL')->pack(-side => 'left');
     my $e;
     $f->Checkbutton(
-        -variable => \$self->{random_url},
+        -variable => \$new_random,
         -text     => 'Random',
         -command  => sub {
-            $e->configure(-state => $self->{random_url}
+            $e->configure(-state => $new_random
                                     ? 'disabled' : 'normal' )
         }
     )->pack(-side => 'left');
-    $e = $f->Entry(-textvariable => \$self->{pm_url},
-              -state => $self->{random_url} ? 'disabled' : 'normal')
+    $e = $f->Entry(-textvariable => \ my $new_pm_url,
+              -state => $new_random ? 'disabled' : 'normal')
         ->pack(-side => 'right');
+    my $wait_for_url;
+    $wait_for_url = $self->{mw}->repeat(250, sub {
+        if (defined $self->{pm_url}) {
+            $wait_for_url->cancel;
+            $old_pm_url = $self->{pm_url}
+                if "" eq ($old_pm_url // 'closed too quickly');
+            $new_pm_url = $old_pm_url
+                if "" eq ($new_pm_url // "");
+        }
+    });
 
     my $time_f = $opt_f->Frame->pack(-fill => 'x');
     $opt_f->Label(-text => 'Show Timestamps')->pack(-side => 'left');
@@ -299,7 +310,9 @@ sub show_options {
         -text      => 'Apply',
         -underline => 0,
         -command   => sub{
-            $new->{pm_url} = $self->{pm_url} if $self->{pm_url} ne $old_url;
+            $new->{random_url} = $new_random if $new_random != $old_random;
+            $new->{pm_url} = $new_pm_url
+                if length $new_pm_url && $old_pm_url ne $new_pm_url;
             $self->update_options($show_time, $new);
             $opt_w->destroy;
             $self->{opt_b}->configure(-state => 'normal');
@@ -310,8 +323,6 @@ sub show_options {
     my $cancel_b = $button_f->Button(
         -text => 'Cancel',
         -command => my $cancel_s = sub {
-            $self->{pm_url} = $old_url;
-            $self->{random_url} = $old_random;
             $opt_w->destroy;
             $self->{opt_b}->configure(-state => 'normal');
         },
@@ -325,7 +336,9 @@ sub update_options {
     my ($self, $show_time, $new) = @_;
 
     my %old = ( pm_url => $self->{pm_url},
-        map {($_ => [ split m/\s+/ => $self->{$_} ])} qw( copy_link paste_keys ));
+                random_url => $self->{random_url},
+                map {($_ => [ split m/\s+/ => $self->{$_} ])}
+                    qw( copy_link paste_keys ));
     for my $opt (keys %$new) {
         $self->{$opt} = $new->{$opt} if ! exists $self->{$opt}
                                      || $self->{$opt} ne $new->{$opt};
