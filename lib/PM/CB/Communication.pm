@@ -264,9 +264,10 @@ sub get_all_private {
 
 sub mech_content {
     my ($self) = @_;
-    my $content = $self->{mech}->content;
     # libxml respects encoding, but mech returns the page in unicode,
     # not windows-1252.
+    require Encode;
+    my $content = Encode::encode('UTF-8', $self->{mech}->content);
     $content =~ s/windows-1252/utf-8/i;
     return $content
 }
