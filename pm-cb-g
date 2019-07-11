@@ -55,15 +55,15 @@ BEGIN {
 }
 
 
-use if $mce => 'MCE::Hobo';
-use if $mce => 'MCE::Shared';
+use if $mce => 'MCE::Child';
+use if $mce => 'MCE::Channel';
 
 use if ! $mce => threads => (stack_size => 2 ** $stack_size);
 use if ! $mce => 'Thread::Queue';
 
 my ($queue_class, $queue_constructor, $worker_class)
     = $mce
-    ? ('MCE::Shared', 'queue', 'MCE::Hobo')
+    ? ('MCE::Channel', 'new', 'MCE::Child')
     : ('Thread::Queue', 'new', 'threads');
 
 my ($to_gui, $to_comm, $to_control)

@@ -15,6 +15,9 @@ sub new {
 sub start_comm {
     my ($self) = @_;
     $self->{communicate_t} = $self->{worker_class}->create(sub {
+        if ($INC{'threads.pm'}) {
+            $SIG{QUIT} = sub { threads->exit };
+        }
         my $communication = PM::CB::Communication->new({
             to_gui   => $self->{to_gui},
             from_gui => $self->{to_comm},
@@ -42,9 +45,11 @@ sub start_comm {
             $self->{to_comm}->enqueue(['url']);
         };
     }
-    $self->{to_comm}->insert(0, ['quit']);
-    $self->{communicate_t}->join;
-    $self->{to_gui}->insert(0, ['quit']);
+    if ($^O ne 'MSWin32' || ! $INC{'MCE/Child.pm'}) {
+        $self->{communicate_t}->kill('QUIT');
+        $self->{communicate_t}->join;
+    }
+    $self->{to_gui}->enqueue(['quit']);
 }
 
 
