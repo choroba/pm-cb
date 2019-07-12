@@ -30,7 +30,8 @@ BEGIN {
         font_name     => 'Helvetica',
         char_size     => 12,
         stack_size    => 15,
-        mce           => 0,
+        mce_hobo      => 0,
+        mce_child     => 0,
         no_time       => 0,
         pm_url        => 'www.perlmonks.org',
         date_format   => 'YYYY-MM-DD hh:mm:ss',
@@ -81,7 +82,8 @@ BEGIN {
         'G|geometry=s'      => \$conf{geometry},
         'h|help'            => \my $help,
         'l|log=s'           => \$conf{history_file},
-        'm|mce'             => \$conf{mce},
+        'm|mce_hobo'        => \$conf{mce_hobo},
+        'M|mce_child'       => \$conf{mce_child},
         'n|no_time'         => \$conf{no_time},
         'p|private_color=s' => \$conf{private_color},
         'P|paste_keys=s'    => \$conf{paste_keys},
@@ -105,16 +107,35 @@ BEGIN {
     pod2usage(-verbose => 1, -exitval => 0) if $help;
 }
 
-use if $conf{mce} => 'MCE::Child';
-use if $conf{mce} => 'MCE::Channel';
+use if $conf{mce_hobo}  => 'MCE::Hobo';
+use if $conf{mce_hobo}  => 'MCE::Shared';
+
+use if $conf{mce_child} => 'MCE::Child';
+use if $conf{mce_child} => 'MCE::Channel';
+
+use if ! $INC{'MCE/Util.pm'} => threads => (stack_size => 2 ** $stack_size);
+use if ! $INC{'MCE/Util.pm'} => 'Thread::Queue';
 
 use if ! $conf{mce} => threads => (stack_size => 2 ** $conf{stack_size});
 use if ! $conf{mce} => 'Thread::Queue';
 
-my ($queue_class, $queue_constructor, $worker_class)
-    = $conf{mce}
-    ? ('MCE::Channel', 'new', 'MCE::Child')
-    : ('Thread::Queue', 'new', 'threads');
+my ($queue_class, $queue_constructor, $worker_class);
+
+if ($conf{mce_hobo}) {
+    $queue_class       = 'MCE::Shared';
+    $queue_constructor = 'queue';
+    $worker_class      = 'MCE::Hobo';
+}
+elsif ($conf{mce_child}) {
+    $queue_class       = 'MCE::Channel';
+    $queue_constructor = 'new';
+    $worker_class      = 'MCE::Child';
+}
+else {
+    $queue_class       = 'Thread::Queue';
+    $queue_constructor = 'new';
+    $worker_class      = 'threads';
+}
 
 my ($to_gui, $to_comm, $to_control)
     = map $queue_class->$queue_constructor, 1, 2, 3;
@@ -199,10 +220,14 @@ Prints options and arguments.
 Save all messages to the given log file. Don't save any messages if
 the filename is empty.
 
-=item B<m|mce>
+=item B<m|mce_hobo>
+
+Use L<MCE::Hobo> and L<MCE::Shared> instead of L<threads> and
+L<Thread::Queue>.
+
+=item B<M|mce_child>
 
 Use L<MCE::Child> and L<MCE::Channel> instead of L<threads> and
-L<Thread::Queue>.
 
 =item B<n|no_time>
 

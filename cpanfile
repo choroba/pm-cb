@@ -1,12 +1,16 @@
 use Config;
 
+# The MCE 1.841 distribution includes MCE::Channel and MCE::Child.
+# Thus, suggesting or requiring MCE::Child will pick up minimally MCE 1.841.
+# MCE::Hobo is included with MCE::Shared.
+
 on build => sub {
     if ($Config{usethreads}) {
         suggests 'MCE::Child';
-        suggests 'MCE::Channel';
+        suggests 'MCE::Hobo';
     } else {
         requires 'MCE::Child';
-        requires 'MCE::Channel';
+        requires 'MCE::Hobo';
     }
 };
 
