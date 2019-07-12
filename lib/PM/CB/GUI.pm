@@ -295,8 +295,8 @@ sub show_options {
         -justify => 'left',
         -text => join "\n",
             'Threading model:',
-            ($self->{mce} ? ('MCE::Hobo '     . $MCE::Hobo::VERSION,
-                             'MCE::Shared '   . $MCE::Shared::VERSION)
+            ($self->{mce} ? ('MCE::Child '    . $MCE::Child::VERSION,
+                             'MCE::Channel '  . $MCE::Channel::VERSION)
                           : ('threads '       . $threads::VERSION,
                              'Thread::Queue ' . $Thread::Queue::VERSION)
             ),

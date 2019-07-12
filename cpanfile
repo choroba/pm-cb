@@ -2,11 +2,11 @@ use Config;
 
 on build => sub {
     if ($Config{usethreads}) {
-        suggests 'MCE::Hobo';
-        suggests 'MCE::Shared';
+        suggests 'MCE::Child';
+        suggests 'MCE::Channel';
     } else {
-        requires 'MCE::Hobo';
-        requires 'MCE::Shared';
+        requires 'MCE::Child';
+        requires 'MCE::Channel';
     }
 };
 
