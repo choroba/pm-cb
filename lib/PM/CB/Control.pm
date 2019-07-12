@@ -45,7 +45,7 @@ sub start_comm {
             $self->{to_comm}->enqueue(['url']);
         };
     }
-    if ($^O ne 'MSWin32' || ! $INC{'MCE/Child.pm'}) {
+    if ($^O ne 'MSWin32' || ! $INC{'MCE/Util.pm'}) {
         $self->{communicate_t}->kill('QUIT');
         $self->{communicate_t}->join;
     }
