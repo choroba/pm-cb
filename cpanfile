@@ -8,6 +8,8 @@ on build => sub {
         requires 'MCE::Hobo';
         requires 'MCE::Shared';
     }
+    suggests 'MCE::Child';
+    suggests 'MCE::Channel';
 };
 
 requires 'FindBin';
