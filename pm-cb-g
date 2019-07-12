@@ -167,7 +167,7 @@ the filename is empty.
 
 =item B<m|mce>
 
-Use L<MCE::Shared> and L<MCE::Hobo> instead of L<threads> and
+Use L<MCE::Child> and L<MCE::Channel> instead of L<threads> and
 L<Thread::Queue>.
 
 =item B<n|no_time>
