@@ -105,15 +105,15 @@ BEGIN {
     pod2usage(-verbose => 1, -exitval => 0) if $help;
 }
 
-use if $conf{mce} => 'MCE::Hobo';
-use if $conf{mce} => 'MCE::Shared';
+use if $conf{mce} => 'MCE::Child';
+use if $conf{mce} => 'MCE::Channel';
 
 use if ! $conf{mce} => threads => (stack_size => 2 ** $conf{stack_size});
 use if ! $conf{mce} => 'Thread::Queue';
 
 my ($queue_class, $queue_constructor, $worker_class)
     = $conf{mce}
-    ? ('MCE::Shared', 'queue', 'MCE::Hobo')
+    ? ('MCE::Channel', 'new', 'MCE::Child')
     : ('Thread::Queue', 'new', 'threads');
 
 my ($to_gui, $to_comm, $to_control)
