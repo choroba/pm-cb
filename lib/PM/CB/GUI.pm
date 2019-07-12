@@ -451,9 +451,12 @@ sub decode {
     my ($msg) = @_;
 
     $msg =~ s/&#(x?)([0-9a-f]+);/$1 ? chr hex $2 : chr $2/gei;
-    $msg =~ s/([^\0-\x{FFFF}])/
-              "\x{2997}" . charnames::viacode(ord $1) . "\x{2998}"/ge
-        if 'MSWin32' eq $^O;
+    $msg =~ s{([^\0-\x{FFFF}])}{
+              "\x{2997}"
+              . (charnames::viacode(ord $1)
+                  // sprintf 'U+%X', ord $1)
+              . "\x{2998}"}ge
+        if grep $_ eq $^O, qw( MSWin32 darwin );
     return $msg
 }
 
