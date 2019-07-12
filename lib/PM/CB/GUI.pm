@@ -294,12 +294,16 @@ sub show_options {
         -justify => 'left',
         -text => join "\n",
             'Threading model:',
-            ($self->{mce} ? ('MCE::Hobo '     . $MCE::Hobo::VERSION,
-                             'MCE::Shared '   . $MCE::Shared::VERSION)
-                          : ('threads '       . $threads::VERSION,
-                             'Thread::Queue ' . $Thread::Queue::VERSION)
+            ($self->{mce}{hobo}
+                 ? ('MCE::Hobo '   . $MCE::Hobo::VERSION,
+                    'MCE::Shared ' . $MCE::Shared::VERSION)
+            : $self->{mce}{child}
+                 ? ('MCE::Child ' . $MCE::Child::VERSION,
+                    'MCE::Channel ' . $MCE::Channel::VERSION)
+            : ('threads ' . $threads::VERSION,
+               'Thread::Queue ' . $Thread::Queue::VERSION)
             ),
-        'Stack size: ' . 2 ** $self->{stack_size},
+        ('Stack size: ' . 2 ** $self->{stack_size}) x ! $self->{mce},
         'Geometry: ' . $self->{mw}->geometry,
         $self->{log_fh} ? 'Log file: ' . $self->{log} : (),
     )->pack(-side => 'left', -padx => 5);
@@ -440,9 +444,12 @@ sub decode {
     my ($msg) = @_;
 
     $msg =~ s/&#(x?)([0-9a-f]+);/$1 ? chr hex $2 : chr $2/gei;
-    $msg =~ s/([^\0-\x{FFFF}])/
-              "\x{2997}" . charnames::viacode(ord $1) . "\x{2998}"/ge
-        if 'MSWin32' eq $^O;
+    $msg =~ s{([^\0-\x{FFFF}])}{
+              "\x{2997}"
+              . (charnames::viacode(ord $1)
+                  // sprintf 'U+%X', ord $1)
+              . "\x{2998}"}ge
+        if grep $_ eq $^O, qw( MSWin32 darwin );
     return $msg
 }
 
