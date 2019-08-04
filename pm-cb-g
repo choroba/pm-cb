@@ -79,12 +79,12 @@ my ($queue_class, $queue_constructor, $worker_class)
 my ($to_gui, $to_comm, $to_control)
     = map $queue_class->$queue_constructor, 1, 2, 3;
 my $control_t = $worker_class->create(sub {
-    my $control = PM::CB::Control->new({to_gui       => $to_gui,
-                                        to_comm      => $to_comm,
-                                        from_gui     => $to_control,
-                                        worker_class => $worker_class,
-                                        pm_url       => $pm_url,
-                                        random_url   => $random_url});
+    my $control = 'PM::CB::Control'->new({to_gui       => $to_gui,
+                                          to_comm      => $to_comm,
+                                          from_gui     => $to_control,
+                                          worker_class => $worker_class,
+                                          pm_url       => $pm_url,
+                                          random_url   => $random_url});
     $control->start_comm;
 });
 

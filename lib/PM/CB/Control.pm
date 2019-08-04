@@ -15,7 +15,7 @@ sub new {
 sub start_comm {
     my ($self) = @_;
     $self->{communicate_t} = $self->{worker_class}->create(sub {
-        my $communication = PM::CB::Communication->new({
+        my $communication = 'PM::CB::Communication'->new({
             to_gui   => $self->{to_gui},
             from_gui => $self->{to_comm},
             pm_url   => $self->{pm_url},
