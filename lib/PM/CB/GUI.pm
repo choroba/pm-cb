@@ -3,6 +3,9 @@ package PM::CB::GUI;
 use warnings;
 use strict;
 
+use charnames ();
+use Time::Piece;
+
 use constant {
     TITLE        => 'PM::CB::G',
     PUBLIC       => 0,
@@ -29,7 +32,6 @@ sub url {
 sub gui {
     my ($self) = @_;
 
-    require Time::Piece;
     my $tzoffset = Time::Piece::localtime()->tzoffset;
     $self->{last_date} = q();
 
@@ -447,7 +449,6 @@ sub seen {
 
 
 sub decode {
-    require charnames;
     my ($msg) = @_;
 
     $msg =~ s/&#(x?)([0-9a-f]+);/$1 ? chr hex $2 : chr $2/gei;

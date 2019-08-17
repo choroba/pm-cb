@@ -3,6 +3,11 @@ package PM::CB::Communication;
 use warnings;
 use strict;
 
+use Encode;
+use Time::HiRes;
+use WWW::Mechanize;
+use XML::LibXML;
+
 use constant {
     FREQ             => 7,
     REPEAT_THRESHOLD => 3,
@@ -26,9 +31,6 @@ sub url { "https://$_[0]{pm_url}/bare/?node_id=" }
 
 sub communicate {
     my ($self) = @_;
-    require XML::LibXML;
-    require WWW::Mechanize;
-    require Time::HiRes;
 
     my $mech = $self->{mech}
         = 'WWW::Mechanize'->new(
@@ -122,7 +124,6 @@ sub get_monklist {
         }
         return
     }
-    require XML::LibXML;
     my $dom;
     eval {
         $dom = 'XML::LibXML'->load_xml(string => $self->mech_content);
@@ -161,7 +162,6 @@ sub handle_url {
                 return
             }
 
-            require XML::LibXML;
             my $dom;
             eval {
                 $dom = 'XML::LibXML'->load_xml(string => $self->mech_content)
@@ -266,7 +266,6 @@ sub mech_content {
     my ($self) = @_;
     # libxml respects encoding, but mech returns the page in unicode,
     # not windows-1252.
-    require Encode;
     my $content = Encode::encode('UTF-8', $self->{mech}->content);
     $content =~ s/windows-1252/utf-8/i;
     return $content
