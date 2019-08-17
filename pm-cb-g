@@ -113,7 +113,7 @@ use if $conf{mce_hobo}  => 'MCE::Shared';
 use if $conf{mce_child} => 'MCE::Child';
 use if $conf{mce_child} => 'MCE::Channel';
 
-use if ! $INC{'MCE/Util.pm'} => threads => (stack_size => 2 ** $stack_size);
+use if ! $INC{'MCE/Util.pm'} => threads => (stack_size => 2 ** $conf{stack_size});
 use if ! $INC{'MCE/Util.pm'} => 'Thread::Queue';
 
 use if ! $conf{mce} => threads => (stack_size => 2 ** $conf{stack_size});
