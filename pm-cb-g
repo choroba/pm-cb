@@ -30,8 +30,7 @@ BEGIN {
         font_name     => 'Helvetica',
         char_size     => 12,
         stack_size    => 15,
-        mce_hobo      => 0,
-        mce_child     => 0,
+        mce           => undef,
         no_time       => 0,
         pm_url        => 'www.perlmonks.org',
         date_format   => 'YYYY-MM-DD hh:mm:ss',
@@ -69,8 +68,8 @@ BEGIN {
                 =~ s{^(?:no|false)$}{0}ir
                 =~ s{^(?:yes|true)$}{1}ir;
             }
-
         }
+
     GetOptions(
         'a|author_color=s'  => \$conf{author_color},
         'b|bg_color=s'      => \$conf{bg_color},
@@ -96,6 +95,12 @@ BEGIN {
     ) or pod2usage(-verbose => 0, -exitval => 1);
     $conf{browse_url} //= $conf{pm_url};
 
+    exists $conf{mce_hobo}  and $conf{mce}{hobo}  = delete $conf{mce_hobo};
+    exists $conf{mce_child} and $conf{mce}{child} = delete $conf{mce_child};
+    $conf{mce}{hobo} && $conf{mce}{child} and
+	die "Can't combine mce_hobo and mce_child.\n";
+    $conf{mce}{hobo} || $conf{mce}{child} or undef $conf{mce};
+
     exists $conf{show_time} and $conf{no_time} = !delete $conf{show_time};
     $conf{font_name} =~ m/\s/ and $conf{font_name} = "{".$conf{font_name}."}";
     foreach my $attr (qw( copy_link paste_keys )) {
@@ -107,35 +112,20 @@ BEGIN {
     pod2usage(-verbose => 1, -exitval => 0) if $help;
 }
 
-use if $conf{mce_hobo}  => 'MCE::Hobo';
-use if $conf{mce_hobo}  => 'MCE::Shared';
+use if $conf{mce}{hobo}  => 'MCE::Hobo';
+use if $conf{mce}{hobo}  => 'MCE::Shared';
 
-use if $conf{mce_child} => 'MCE::Child';
-use if $conf{mce_child} => 'MCE::Channel';
-
-use if ! $INC{'MCE/Util.pm'} => threads => (stack_size => 2 ** $conf{stack_size});
-use if ! $INC{'MCE/Util.pm'} => 'Thread::Queue';
+use if $conf{mce}{child} => 'MCE::Child';
+use if $conf{mce}{child} => 'MCE::Channel';
 
 use if ! $conf{mce} => threads => (stack_size => 2 ** $conf{stack_size});
 use if ! $conf{mce} => 'Thread::Queue';
 
-my ($queue_class, $queue_constructor, $worker_class);
-
-if ($conf{mce_hobo}) {
-    $queue_class       = 'MCE::Shared';
-    $queue_constructor = 'queue';
-    $worker_class      = 'MCE::Hobo';
-}
-elsif ($conf{mce_child}) {
-    $queue_class       = 'MCE::Channel';
-    $queue_constructor = 'new';
-    $worker_class      = 'MCE::Child';
-}
-else {
-    $queue_class       = 'Thread::Queue';
-    $queue_constructor = 'new';
-    $worker_class      = 'threads';
-}
+my ($queue_class, $queue_constructor, $worker_class) = @{{
+    0 => [qw[ Thread::Queue new   threads    ]],
+    1 => [qw[ MCE::Shared   queue MCE::Hobo  ]],
+    2 => [qw[ MCE::Channel  new   MCE::Child ]],
+    }->{ ($conf{mce}{hobo} || 0) + 2 * ($conf{mce}{child} || 0) }};
 
 my ($to_gui, $to_comm, $to_control)
     = map $queue_class->$queue_constructor, 1, 2, 3;
@@ -157,6 +147,12 @@ my $gui = 'PM::CB::GUI'->new({
     control_t  => $control_t});
 $gui->gui;
 
+# MCE::Channel can only enqueue, it has no insert method.
+sub MCE::Channel::insert {
+    my ($self, undef, $messages) = @_;
+    $self->enqueue($messages);
+}
+
 =head1 NAME
 
 pm-cb-g - A GUI client to PerlMonks' Chatter Box
@@ -165,12 +161,15 @@ pm-cb-g - A GUI client to PerlMonks' Chatter Box
 
   pm-cb-g -a blue -b white -c 12 -f black -F Helvetica
           -p magenta -s 15 -S darkgray -t darkcyan -g darkgreen
-          -u www.perlmonks.org -U www.perlmonks.org [ -h -m -n ]
+          -u www.perlmonks.org -U www.perlmonks.org
+          -C Control-Button-1 -l ""
+          [ -h -m/-M -n ]
 
 =head1 OPTIONS
 
-Use an integer for I<size>, color name or C<#RRGGBB> code for
-I<color>. The default values are shown in the Synopsis above.
+The default values are shown in the Synopsis above.
+
+For colors, use a color name or C<#RRGGBB> code.
 
 =over
 
@@ -184,7 +183,7 @@ The background color of the application.
 
 =item B<c|char_size> I<size>
 
-The size of all the characters.
+The size of all the characters (integer).
 
 =item B<C|copy_link> I<event>
 
@@ -228,6 +227,7 @@ L<Thread::Queue>.
 =item B<M|mce_child>
 
 Use L<MCE::Child> and L<MCE::Channel> instead of L<threads> and
+L<Thread::Queue>.
 
 =item B<n|no_time>
 
@@ -264,3 +264,11 @@ The address to use to open PerlMonks links in the browser. Same as
 B<url> if not specified.
 
 =back
+
+=head1 AUTHOR
+
+E. Choroba
+
+=head2 Contributors
+
+H.Merijn Brand, LorenzoTa, Mario Roy, Nick Tonkin, Steve Rogerson

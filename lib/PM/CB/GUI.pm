@@ -296,24 +296,20 @@ sub show_options {
 
     my @version;
 
-    if ($INC{'MCE/Util.pm'}) {
-        @version = $self->{mce_hobo}
-                 ? ('MCE::Hobo '     . $MCE::Hobo::VERSION,
-                    'MCE::Shared '   . $MCE::Shared::VERSION)
-                 : ('MCE::Child '    . $MCE::Child::VERSION,
-                    'MCE::Channel '  . $MCE::Channel::VERSION);
-    }
-    else {
-        @version = ('threads '       . $threads::VERSION,
-                    'Thread::Queue ' . $Thread::Queue::VERSION);
-    }
-
     $info_f->Label(
         -justify => 'left',
         -text => join "\n",
             'Threading model:',
-            @version,
-            'Stack size: ' . 2 ** $self->{stack_size},
+             ($self->{mce}{hobo}
+                  ? ('MCE::Hobo '    . $MCE::Hobo::VERSION,
+                     'MCE::Shared '  . $MCE::Shared::VERSION)
+             : $self->{mce}{child}
+                  ? ('MCE::Child '   . $MCE::Child::VERSION,
+                     'MCE::Channel ' . $MCE::Channel::VERSION)
+             : ('threads '           . $threads::VERSION,
+                'Thread::Queue '     . $Thread::Queue::VERSION)
+            ),
+            ('Stack size: ' . 2 ** $self->{stack_size}) x ! $self->{mce},
             'Geometry: ' . $self->{mw}->geometry,
             $self->{log_fh} ? 'Log file: ' . $self->{log} : ()
     )->pack(-side => 'left', -padx => 5);
