@@ -12,6 +12,8 @@ on build => sub {
         requires 'MCE::Child';
         requires 'MCE::Hobo';
     }
+    suggests 'MCE::Child';
+    suggests 'MCE::Channel';
 };
 
 requires 'FindBin';
