@@ -95,6 +95,7 @@ BEGIN {
     ) or pod2usage(-verbose => 0, -exitval => 1);
     $conf{browse_url} //= $conf{pm_url};
 
+    exists $conf{mce}       and $conf{mce_child}  = delete $conf{mce};
     exists $conf{mce_hobo}  and $conf{mce}{hobo}  = delete $conf{mce_hobo};
     exists $conf{mce_child} and $conf{mce}{child} = delete $conf{mce_child};
     $conf{mce}{hobo} && $conf{mce}{child} and
