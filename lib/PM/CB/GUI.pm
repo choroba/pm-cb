@@ -527,6 +527,7 @@ sub show {
 
             } elsif ($orig =~ /^\Q$url\E\|?/ && $url !~ m{^https?://}) {
                 substr $url, 0, 0, '__PM_CB_URL__';
+                $url =~ s/&/&amp;/g;
                 $tag = "browse:$url|$name";
             }
 
