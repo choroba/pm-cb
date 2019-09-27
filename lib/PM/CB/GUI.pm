@@ -24,9 +24,10 @@ sub new {
 
 
 sub url {
-    my ($self, $url) = @_;
+    my ($self, $url, $part) = @_;
     $url //= '__PM_CB_URL__';
-    $url =~ s{__PM_CB_URL__}{https://$self->{browse_url}/?node=};
+    $part //= "?node=";
+    $url =~ s{__PM_CB_URL__}{https://$self->{browse_url}/$part};
     return $url
 }
 
@@ -490,7 +491,7 @@ sub show {
         while ($not_code =~ m{\[(\s*(?:
                                      https?
                                      | (?:meta)?mod | doc
-                                     | id
+                                     | id | node | href
                                      | wp
                                      | pad
                                    )://.+?\s*|\S+)\]}gx
@@ -513,16 +514,18 @@ sub show {
                           ? $self->url("__PM_CB_URL__$1's+scratchpad")
                           : $self->url("__PM_CB_URL__$author\'s+scratchpad")}e;
             $url =~ s{^wp://}{https://en.wikipedia.org/wiki/};
+            $url =~ s{^href://}{ $self->url("__PM_CB_URL__", "") }e;
+            $url =~ s{^node://}{ $self->url("__PM_CB_URL__") }e;
 
             my $tag = "browse:$url|$name";
 
             if ($url =~ m{^id://([0-9]+)}) {
                 my $id = $1;
                 $self->ask_title($id, $url) if $name eq $url;
-                $url = '__PM_CB_URL__' . $id;
+                $url =~ s{^id://[0-9]+}{ $self->url("__PM_CB_URL__$id", '?node_id=') }e;
                 $tag = "browse:$id|$name";
 
-            } elsif ($orig =~ /^\Q$url\E\|?/) {
+            } elsif ($orig =~ /^\Q$url\E\|?/ && $url !~ m{^https?://}) {
                 substr $url, 0, 0, '__PM_CB_URL__';
                 $tag = "browse:$url|$name";
             }
