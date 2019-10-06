@@ -95,9 +95,9 @@ BEGIN {
     ) or pod2usage(-verbose => 0, -exitval => 1);
     $conf{browse_url} //= $conf{pm_url};
 
-    exists $conf{mce}       and $conf{mce_child}  = delete $conf{mce};
-    exists $conf{mce_hobo}  and $conf{mce}{hobo}  = delete $conf{mce_hobo};
-    exists $conf{mce_child} and $conf{mce}{child} = delete $conf{mce_child};
+    defined $conf{mce}       and $conf{mce_child}  = delete $conf{mce};
+    defined $conf{mce_hobo}  and $conf{mce}{hobo}  = delete $conf{mce_hobo};
+    defined $conf{mce_child} and $conf{mce}{child} = delete $conf{mce_child};
     $conf{mce}{hobo} && $conf{mce}{child} and
 	die "Can't combine mce_hobo and mce_child.\n";
     $conf{mce}{hobo} || $conf{mce}{child} or undef $conf{mce};
@@ -122,11 +122,12 @@ use if $conf{mce}{child} => 'MCE::Channel';
 use if ! $conf{mce} => threads => (stack_size => 2 ** $conf{stack_size});
 use if ! $conf{mce} => 'Thread::Queue';
 
+my $mce_idx = ($conf{mce}{hobo} || 0) + 2 * ($conf{mce}{child} || 0);
 my ($queue_class, $queue_constructor, $worker_class) = @{{
     0 => [qw[ Thread::Queue new   threads    ]],
     1 => [qw[ MCE::Shared   queue MCE::Hobo  ]],
     2 => [qw[ MCE::Channel  new   MCE::Child ]],
-    }->{ ($conf{mce}{hobo} || 0) + 2 * ($conf{mce}{child} || 0) }};
+    }->{$mce_idx}};
 
 my ($to_gui, $to_comm, $to_control)
     = map $queue_class->$queue_constructor, 1, 2, 3;
