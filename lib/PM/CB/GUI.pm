@@ -686,6 +686,10 @@ sub quit {
     my ($self) = @_;
     print STDERR "Quitting...\n";
     $self->{to_control}->insert(0, ['quit']);
+    if ('MSWin32' ne $^O && $self->{mce}) {
+        $self->{control_t}->kill('QUIT');
+        Tk::exit()
+    }
 }
 
 
