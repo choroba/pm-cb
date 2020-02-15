@@ -53,7 +53,7 @@ BEGIN {
     $browse_url //= $pm_url;
     die "Can't combine mce_hobo and mce_child.\n"
         if $mce->{hobo} && $mce->{child};
-    undef $mce unless $mce->{hobo} || $mce->{child};
+    $mce= {} unless $mce->{hobo} || $mce->{child};
 
     pod2usage(-verbose => 1, -exitval => 0) if $help;
 }
@@ -99,7 +99,7 @@ my $gui = 'PM::CB::GUI'->new({
     char_size     => $char_size,
     stack_size    => $stack_size,
     seen_color    => $seen_color,
-    mce           => $mce,
+    mce           => keys %$mce ? $mce : undef,
     no_time       => $no_time,
     from_comm     => $to_gui,
     to_comm       => $to_comm,
