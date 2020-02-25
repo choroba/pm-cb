@@ -69,10 +69,11 @@ sub gui {
 
     my $write_f = $mw->Frame->pack(-fill => 'x');
     $self->{write} = my $write = $write_f->Text(
-        -height     => 3,
-        -background => $self->{bg_color},
-        -foreground => $self->{fg_color},
-        -wrap       => 'word',
+        -height           => 3,
+        -background       => $self->{bg_color},
+        -foreground       => $self->{fg_color},
+        -insertbackground => $self->{fg_color},
+        -wrap             => 'word',
     )->pack(-fill => 'x');
 
     my $cb_paste = sub {
