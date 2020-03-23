@@ -494,10 +494,10 @@ sub show {
     while ($not_code =~ m{\[(\s*(?:
                                  https?
                                  | (?:meta)?mod | doc
-                                 | id | node | ref
+                                 | id | node | href
                                  | wp
                                  | pad
-                               )://.+?\s*|\S+)\]}gx
+                               )://.+?\s*|[^\]]+)\]}gx
 	) {
 	    my $orig = $1;
 	    my ($url, $name) = split /\|/, $orig;
@@ -530,6 +530,7 @@ sub show {
 	    } elsif ($orig =~ /^\Q$url\E\|?/ && $url !~ m{^https?://}) {
 		substr $url, 0, 0, '__PM_CB_URL__';
 		$url =~ s/&/&amp;/g;
+		$url =~ tr/ /+/;
 		$tag = "browse:$url|$name";
 	    }
 
