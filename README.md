@@ -13,6 +13,41 @@ client to PerlMonks' ChatterBox written in Perl and Tk.
 
 Pull requests welcome!
 
+PREQUISITES
+--
+Install required modules using
+```
+cpanm --installdeps .
+```
+
+If your `perl` has been compiled with thread support:
+
+```
+perl -MConfig -E 'say "Threads supported" if $Config{useithreads}'
+```
+you can simply start the program with
+
+```
+perl pm-cb-g
+
+```
+If threads are not supported, either compile a new perl with threads enabled,
+e.g.
+
+```
+perlbrew install perl-5.30.0 --as=5.30.0-threads -Dusethreads
+perlbrew use 5.30.0-threads
+```
+or run the program using `MCE::Hobo` with
+```
+perl pm-cb-g --mce_hobo
+```
+or with `MCE::Child`
+```
+perl pm-cb-g --mce_child
+```
+
+
 LICENSE INFORMATION
 --
 
