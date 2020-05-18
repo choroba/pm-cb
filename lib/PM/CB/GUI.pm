@@ -183,6 +183,14 @@ sub gui {
         }
     });
 
+    $mw->repeat(10_000, sub {
+        for my $id (keys %{ $self->{ids} }) {
+            warn "Reasking $id";
+            $self->ask_title($id, $self->{ids}{$id});
+            return # Don't overload the server
+        }
+    });
+
     if (length $self->{log}) {
         if (open my $from, '<:encoding(UTF-8)', $self->{log}) {
             my $pos = 0;
@@ -393,6 +401,7 @@ sub update_options {
 
 sub show_title {
     my ($self, $id, $name, $title) = @_;
+    delete $self->{ids}{$id};
     my $tag = "browse:$id|$name";
     my ($from, $to) = ('1.0');
     while (($from, $to) = $self->{read}->tagNextrange($tag, $from)) {
@@ -580,6 +589,7 @@ sub show_list {
 
 sub ask_title {
     my ($self, $id, $name) = @_;
+    $self->{ids}{$id} = $name;
     $self->{to_comm}->enqueue(['title', $id, $name]);
 }
 
