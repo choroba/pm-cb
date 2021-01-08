@@ -447,6 +447,7 @@ sub seen {
         $self->{read}->tagRemove('unseen', $from, $to);
         $self->{read}->tagAdd('seen', $from, $to);
     }
+    $self->{last_update}->configure(-foreground => $self->{seen_color});
     $self->{mw}->configure(-title => TITLE);
 }
 
@@ -650,7 +651,8 @@ sub update_time {
     my $local_time = convert_time($server_time, $tzoffset);
     $self->{last_update}->configure(
         -text => 'Last update: '
-                 . $local_time->strftime('%Y-%m-%d %H:%M:%S'));
+                 . $local_time->strftime('%Y-%m-%d %H:%M:%S'),
+        -foreground => 'black');
     $self->{last_date} = $local_time->strftime('%Y-%m-%d') if $should_update;
 }
 
