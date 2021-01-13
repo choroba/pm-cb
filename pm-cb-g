@@ -119,8 +119,8 @@ use if $conf{mce}{hobo}  => 'MCE::Shared';
 use if $conf{mce}{child} => 'MCE::Child';
 use if $conf{mce}{child} => 'MCE::Channel';
 
-use if ! $conf{mce} => threads => (stack_size => 2 ** $conf{stack_size});
-use if ! $conf{mce} => 'Thread::Queue';
+use if !($conf{mce}{child} || $conf{mce}{hobo}) => threads => (stack_size => 2 ** $conf{stack_size});
+use if !($conf{mce}{child} || $conf{mce}{hobo}) => 'Thread::Queue';
 
 my $mce_idx = ($conf{mce}{hobo} || 0) + 2 * ($conf{mce}{child} || 0);
 my ($queue_class, $queue_constructor, $worker_class) = @{{
