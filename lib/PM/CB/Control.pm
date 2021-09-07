@@ -62,7 +62,7 @@ sub heartbeat {
     my ($self) = @_;
 
     unless ($self->{communicate_t}->is_running) {
-        warn "Restarting worker...\n";
+        warn "PMCB: Restarting worker...\n";
         eval { $self->{communicate_t}->join };
         $self->start_comm;
         $self->{to_gui}->enqueue(['send_login']);
