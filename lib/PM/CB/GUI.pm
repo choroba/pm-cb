@@ -6,7 +6,7 @@ use Syntax::Construct qw{ // };
 
 use charnames ();
 use Time::Piece;
-
+use List::Util qw{ shuffle };
 
 use constant {
     TITLE        => 'PM::CB::G',
@@ -172,6 +172,7 @@ sub gui {
             private    => sub { $self->show_private(@$msg, $tzoffset);
                                 $self->increment_unread; },
             title      => sub { $self->show_title(@$msg) },
+            shortcut   => sub { $self->show_shortcut(@$msg) },
             send_login => sub { $self->send_login },
             url        => sub { $self->{pm_url} = $msg->[0] },
             list       => sub { $self->show_list(@$msg) },
@@ -185,10 +186,15 @@ sub gui {
     });
 
     $mw->repeat(10_000, sub {
-        for my $id (keys %{ $self->{ids} }) {
-            warn "Reasking $id";
+        for my $id (shuffle(keys %{ $self->{ids} })) {
+            warn "PMCB: Reasking $id";
             $self->ask_title($id, $self->{ids}{$id});
-            return # Don't overload the server
+            last # Don't overload the server
+        }
+        for my $shortcut (shuffle(keys %{ $self->{shortcuts} })) {
+            warn "PMCB: Reasking $shortcut";
+            $self->ask_title($shortcut, $self->{shortcuts}{$shortcut});
+            last
         }
     });
 
@@ -413,6 +419,22 @@ sub show_title {
 }
 
 
+sub show_shortcut {
+    my ($self, $shortcut, $url, $title) = @_;
+    delete $self->{shortcuts}{$shortcut};
+    my $old_tag = "shortcut:$shortcut|$title";
+    my $new_tag = "browse:$url|$title";
+    my ($from, $to) = ('1.0');
+    while (($from, $to) = $self->{read}->tagNextrange($old_tag, $from)) {
+        $self->{read}->tagRemove("[$old_tag]", $from, $to);
+        $self->{read}->delete($from, $to);
+
+        $self->add_clickable($title, $new_tag, $from, $url);
+        $from = $to;
+    }
+}
+
+
 sub save {
     my ($self) = @_;
     my $file = $self->{mw}->getSaveFile(-title => 'Save the history to a file');
@@ -504,7 +526,6 @@ sub show {
                                      https?
                                      | (?:meta)?mod | doc
                                      | id | node | href
-                                     | wp
                                      | pad
                                    )://.+?\s*|[^\]]+)\]}gx
         ) {
@@ -525,7 +546,6 @@ sub show {
                      {length $1
                           ? $self->url("__PM_CB_URL__$1's+scratchpad")
                           : $self->url("__PM_CB_URL__$author\'s+scratchpad")}e;
-            $url =~ s{^wp://}{https://en.wikipedia.org/wiki/};
             $url =~ s{^href://}{ $self->url("__PM_CB_URL__", "") }e;
             $url =~ s{^node://}{ $self->url("__PM_CB_URL__") }e;
 
@@ -537,10 +557,15 @@ sub show {
                 $url =~ s{^id://[0-9]+}{ $self->url("__PM_CB_URL__$id", '?node_id=') }e;
                 $tag = "browse:$id|$name";
 
-            } elsif ($orig =~ /^\Q$url\E\|?/ && $url !~ m{^https?://}) {
+            } elsif ($url =~ m{://} && $url !~ m{^https?://}
+                     && $orig =~ /^\Q$url\E\|?/
+            ) {
+                $name =~ s{^.+?://}{} if $name eq $url;
+                $self->ask_shortcut($url, $name);
+                $tag = "shortcut:$url|$name";
+
+            } else {
                 substr $url, 0, 0, '__PM_CB_URL__';
-                $url =~ s/&/&amp;/g;
-                $url =~ tr/ /+/;
                 $tag = "browse:$url|$name";
             }
 
@@ -593,6 +618,13 @@ sub ask_title {
     my ($self, $id, $name) = @_;
     $self->{ids}{$id} = $name;
     $self->{to_comm}->enqueue(['title', $id, $name]);
+}
+
+
+sub ask_shortcut {
+    my ($self, $shortcut, $title) = @_;
+    $self->{shortcuts}{$shortcut} = $title;
+    $self->{to_comm}->enqueue(['shortcut', $shortcut, $title]);
 }
 
 
