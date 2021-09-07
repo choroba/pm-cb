@@ -23,6 +23,7 @@ requires 'Time::HiRes';
 requires 'Time::Piece';
 requires 'charnames';
 
+requires 'List::Util';
 requires 'LWP::Protocol::https';
 requires 'Syntax::Construct';
 requires 'Tk';
