@@ -565,7 +565,7 @@ sub show {
                 $tag = "shortcut:$url|$name";
 
             } else {
-                substr $url, 0, 0, '__PM_CB_URL__';
+                substr $url, 0, 0, '__PM_CB_URL__' unless $url =~ m{^https?://};
                 $tag = "browse:$url|$name";
             }
 
