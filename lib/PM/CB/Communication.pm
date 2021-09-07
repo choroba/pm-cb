@@ -95,7 +95,7 @@ sub communicate {
 
                 $previous = $xml;
             } else {
-                warn $@;
+                warn "PMCB: $@";
             }
         }
 
