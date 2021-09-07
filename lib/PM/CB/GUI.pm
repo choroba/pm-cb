@@ -120,7 +120,8 @@ sub gui {
     )->pack(-side => 'left');
     $mw->bind('<Alt-l>', sub { $list_b->invoke });
 
-    my $help_b = $self->{opt_h} = $button_f->Button(-text      => 'Help',
+    my $help_b = $self->{opt_h} = $button_f->Button(
+                                   -text      => 'Help',
                                    -command   => sub { $self->help },
                                    -underline => 0,
                                   )->pack(-side => 'left');
