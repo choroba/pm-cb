@@ -45,16 +45,20 @@ my $cr = color ("reset");
 
 my $user = lc ($conf{username} || $ENV{logname});
 
-if (my $hf = $conf{history_file}) {
-    $hf =~ s/~/$ENV{HOME}/;
-    if (open my $fh, '<:encoding(utf-8)', $hf) {
-	local $/ = "\x{2028}";
-	chomp (my @hist = <$fh>);
-	for (grep m/$pat/i => @hist) {
-	    my ($time, $author, $msg) = split m/\x{2063}/ => $_;
-	    $msg =~ s/[\r\n\s]*\z//;
-	    my $dc = $user eq lc $author =~ s/^\W+//r =~ s/\W+$//r ? $cu : $ca;
-	    say $ct, $time, $dc, $author, $cr, $msg;
-	    }
+my %seen;
+foreach my $hf (sort
+		grep { !$seen{$_}++ }
+		map  { glob ("$_*"), glob (s/(?=\.log$)/*/r) }
+		map  { s{^~}{$ENV{HOME}}r }
+		$conf{history_file}) {
+    open my $fh, '<:encoding(utf-8)', $hf or next;
+    say $hf;
+    local $/ = "\x{2028}";
+    chomp (my @hist = <$fh>);
+    for (grep m/$pat/i => @hist) {
+	my ($time, $author, $msg) = split m/\x{2063}/ => $_;
+	$msg =~ s/[\r\n\s]*\z//;
+	my $dc = $user eq lc $author =~ s/^\W+//r =~ s/\W+$//r ? $cu : $ca;
+	say $ct, $time, $dc, $author, $cr, $msg;
 	}
     }
