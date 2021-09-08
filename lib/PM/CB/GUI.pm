@@ -82,7 +82,7 @@ sub gui {
             // eval { $write->SelectionGet(-selection => 'CLIPBOARD') };
         $write->insert('insert', $paste) if length $paste;
     };
-    $write->bind("<$_>", $cb_paste) for split m/\s+/ => $self->{paste_keys};
+    $write->bind($_, $cb_paste) for split m/\s+/ => $self->{paste_keys};
 
     my $button_f = $mw->Frame->pack;
     my $send_b = $button_f->Button(-text => 'Send',
@@ -373,16 +373,16 @@ sub update_options {
 
     for my $tag (grep /^browse:/, $self->{read}->tagNames) {
 	for my $old_event (@{ $old{copy_link} }) {
-            my $binding = $self->{read}->tagBind($tag, "<$old_event>");
-            $self->{read}->tagBind($tag, "<$old_event>", "");
-            $self->{read}->tagBind($tag, "<$_>", $binding)
+            my $binding = $self->{read}->tagBind($tag, $old_event);
+            $self->{read}->tagBind($tag, $old_event, "");
+            $self->{read}->tagBind($tag, $_, $binding)
                 for split m/\s+/ => $self->{copy_link};
         }
     }
     for my $old_event (@{ $old{paste_keys} }) {
-        my $binding = $self->{write}->bind("<$old_event>");
-        $self->{write}->bind("<$old_event>", "");
-        $self->{write}->bind("<$_>", $binding)
+        my $binding = $self->{write}->bind($old_event);
+        $self->{write}->bind($old_event, "");
+        $self->{write}->bind($_, $binding)
 	    for split m/\s+/ => $self->{paste_keys};
     }
 
@@ -598,7 +598,7 @@ sub add_clickable {
                    sub { $self->{balloon}->detach($text) });
     $text->tagBind($tag, '<Button-1>',
                    sub { browse($self->url($url)) });
-    $text->tagBind($tag, "<$_>",
+    $text->tagBind($tag, $_,
                    sub { $text->clipboardClear;
 		         $text->clipboardAppend($self->url($url)) })
 	for split m/\s+/ => $self->{copy_link};
