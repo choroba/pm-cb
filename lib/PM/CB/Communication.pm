@@ -17,6 +17,7 @@ use constant {
     SEND             => 227820,
     PRIVATE          => 15848,
     MONKLIST         => 15851,
+    SHORTCUT         => 11136513,
 };
 
 
@@ -43,14 +44,15 @@ sub communicate {
     my $last_update = -1;
     my ($message, $command);
     my %dispatch = (
-        login => sub { $self->login(@$message)
+        login    => sub { $self->login(@$message)
                            or $self->{to_gui}->enqueue(['login']) },
-        send  => sub { $message->[0] =~ tr/\x00-\x20/ /s;
+        send     => sub { $message->[0] =~ tr/\x00-\x20/ /s;
                        $self->send_message($message->[0]) },
-        title => sub { $self->get_title(@$message) },
-        url   => sub { $self->handle_url(@$message) },
-        list  => sub { $self->get_monklist },
-        quit  => sub { no warnings 'exiting'; last },
+        title    => sub { $self->get_title(@$message) },
+        shortcut => sub { $self->get_shortcut(@$message) },
+        url      => sub { $self->handle_url(@$message) },
+        list     => sub { $self->get_monklist },
+        quit     => sub { no warnings 'exiting'; last },
     );
 
     while (1) {
@@ -170,6 +172,36 @@ sub handle_url {
             $titles{$id} = $title = $dom->findvalue('/node/@title');
         }
         $self->{to_gui}->enqueue(['title', $id, $name, $title]);
+    }
+}
+
+
+{   my %link;
+    sub get_shortcut {
+        my ($self, $shortcut, $title, $repeat) = @_;
+        my $url = $link{$shortcut};
+        unless (defined $url) {
+            my $response;
+            eval {
+                $response = $self->{mech}->get($self->url . SHORTCUT
+                                               . ";link=$shortcut");
+            };
+            if (! $response || $response->is_error) {
+                $repeat //= 0;
+                $self->get_shortcut($shortcut, $repeat + 1)
+                    unless $repeat > REPEAT_THRESHOLD;
+                return
+            }
+
+            my $dom;
+            eval {
+                $dom = 'XML::LibXML'->load_xml(string => $self->mech_content)
+            } or return;
+
+            $link{$shortcut} = $url
+                = $dom->findvalue('/links/link/url') =~ s/\n//r;
+        }
+        $self->{to_gui}->enqueue(['shortcut', $shortcut, $url, $title]);
     }
 }
 

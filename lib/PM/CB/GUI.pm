@@ -5,6 +5,7 @@ use strict;
 
 use charnames ();
 use Time::Piece;
+use List::Util qw{ shuffle };
 
 use constant {
     TITLE        => 'PM::CB::G',
@@ -43,8 +44,8 @@ sub gui {
     require Tk::Balloon;
 
     $self->{mw} = my $mw = 'MainWindow'->new(-title => TITLE);
-    $self->{geometry} and $mw->geometry ($self->{geometry});
     $mw->protocol(WM_DELETE_WINDOW => sub { $self->quit });
+    $mw->geometry($self->{geometry}) if $self->{geometry};
     $mw->optionAdd('*font', "$self->{font_name} $self->{char_size}");
 
     my $read_f = $mw->Frame->pack(-expand => 1, -fill => 'both');
@@ -81,7 +82,7 @@ sub gui {
             // eval { $write->SelectionGet(-selection => 'CLIPBOARD') };
         $write->insert('insert', $paste) if length $paste;
     };
-    $write->bind($_, $cb_paste) for split m/\s+/ => $self->{paste_keys};
+    $write->bind("<$_>", $cb_paste) for split m/\s+/ => $self->{paste_keys};
 
     my $button_f = $mw->Frame->pack;
     my $send_b = $button_f->Button(-text => 'Send',
@@ -170,6 +171,7 @@ sub gui {
             private    => sub { $self->show_private(@$msg, $tzoffset);
                                 $self->increment_unread; },
             title      => sub { $self->show_title(@$msg) },
+            shortcut   => sub { $self->show_shortcut(@$msg) },
             send_login => sub { $self->send_login },
             url        => sub { $self->{pm_url} = $msg->[0] },
             list       => sub { $self->show_list(@$msg) },
@@ -183,10 +185,15 @@ sub gui {
     });
 
     $mw->repeat(10_000, sub {
-        for my $id (keys %{ $self->{ids} }) {
-            warn "Reasking $id";
+        for my $id (shuffle(keys %{ $self->{ids} })) {
+            warn "PMCB: Reasking $id";
             $self->ask_title($id, $self->{ids}{$id});
-            return; # Don't overload the server
+            last # Don't overload the server
+        }
+        for my $shortcut (shuffle(keys %{ $self->{shortcuts} })) {
+            warn "PMCB: Reasking $shortcut";
+            $self->ask_title($shortcut, $self->{shortcuts}{$shortcut});
+            last
         }
     });
 
@@ -366,16 +373,17 @@ sub update_options {
 
     for my $tag (grep /^browse:/, $self->{read}->tagNames) {
 	for my $old_event (@{ $old{copy_link} }) {
-            my $binding = $self->{read}->tagBind($tag, $old_event);
-            $self->{read}->tagBind($tag, $old_event, "");
-            $self->{read}->tagBind($tag, $_, $binding)
+            my $binding = $self->{read}->tagBind($tag, "<$old_event>");
+            $self->{read}->tagBind($tag, "<$old_event>", "");
+            $self->{read}->tagBind($tag, "<$_>", $binding)
                 for split m/\s+/ => $self->{copy_link};
         }
     }
     for my $old_event (@{ $old{paste_keys} }) {
-        my $binding = $self->{write}->bind($old_event);
-        $self->{write}->bind($old_event, "");
-        $self->{write}->bind($_, $binding) for split m/\s+/ => $self->{paste_keys};
+        my $binding = $self->{write}->bind("<$old_event>");
+        $self->{write}->bind("<$old_event>", "");
+        $self->{write}->bind("<$_>", $binding)
+	    for split m/\s+/ => $self->{paste_keys};
     }
 
     $self->{mw}->optionAdd('*font', "$self->{font_name} $self->{char_size}");
@@ -412,6 +420,22 @@ sub show_title {
     while (($from, $to) = $self->{read}->tagNextrange($tag, $from)) {
         $self->{read}->delete($from, $to);
         $self->{read}->insert($from, "[$title]", [$tag]);
+        $from = $to;
+    }
+}
+
+
+sub show_shortcut {
+    my ($self, $shortcut, $url, $title) = @_;
+    delete $self->{shortcuts}{$shortcut};
+    my $old_tag = "shortcut:$shortcut|$title";
+    my $new_tag = "browse:$url|$title";
+    my ($from, $to) = ('1.0');
+    while (($from, $to) = $self->{read}->tagNextrange($old_tag, $from)) {
+        $self->{read}->tagRemove("[$old_tag]", $from, $to);
+        $self->{read}->delete($from, $to);
+
+        $self->add_clickable($title, $new_tag, $from, $url);
         $from = $to;
     }
 }
@@ -506,7 +530,6 @@ sub show {
                                  https?
                                  | (?:meta)?mod | doc
                                  | id | node | href
-                                 | wp
                                  | pad
                                )://.+?\s*|[^\]]+)\]}gx
 	) {
@@ -527,7 +550,6 @@ sub show {
 		     {length $1
 			  ? $self->url("__PM_CB_URL__$1's+scratchpad")
 			  : $self->url("__PM_CB_URL__$author\'s+scratchpad")}e;
-	    $url =~ s{^wp://}{https://en.wikipedia.org/wiki/};
 	    $url =~ s{^href://}{ $self->url("__PM_CB_URL__", "") }e;
 	    $url =~ s{^node://}{ $self->url("__PM_CB_URL__") }e;
 
@@ -538,18 +560,24 @@ sub show {
 		$self->ask_title($id, $url) if $name eq $url;
 		$url =~ s{^id://[0-9]+}{ $self->url("__PM_CB_URL__$id", '?node_id=') }e;
 		$tag = "browse:$id|$name";
-	    } elsif ($orig =~ /^\Q$url\E\|?/ && $url !~ m{^https?://}) {
-		substr $url, 0, 0, '__PM_CB_URL__';
-		$url =~ s/&/&amp;/g;
-		$url =~ tr/ /+/;
-		$tag = "browse:$url|$name";
-	    }
 
-	    $fix_length += length($orig) - length($name);
+            } elsif ($url =~ m{://} && $url !~ m{^https?://}
+                     && $orig =~ /^\Q$url\E\|?/
+            ) {
+                $name =~ s{^.+?://}{} if $name eq $url;
+                $self->ask_shortcut($url, $name);
+                $tag = "shortcut:$url|$name";
 
-	    $self->add_clickable($name, $tag, $from, $url);
-	}
-	$start_pos = pos $message;
+            } else {
+                substr $url, 0, 0, '__PM_CB_URL__' unless $url =~ m{^https?://};
+                $tag = "browse:$url|$name";
+            }
+
+            $fix_length += length($orig) - length($name);
+
+            $self->add_clickable($name, $tag, $from, $url);
+        }
+        $start_pos = pos $message;
     }
     $text->see('end');
 }
@@ -570,7 +598,7 @@ sub add_clickable {
                    sub { $self->{balloon}->detach($text) });
     $text->tagBind($tag, '<Button-1>',
                    sub { browse($self->url($url)) });
-    $text->tagBind($tag, $_,
+    $text->tagBind($tag, "<$_>",
                    sub { $text->clipboardClear;
 		         $text->clipboardAppend($self->url($url)) })
 	for split m/\s+/ => $self->{copy_link};
@@ -597,6 +625,13 @@ sub ask_title {
 }
 
 
+sub ask_shortcut {
+    my ($self, $shortcut, $title) = @_;
+    $self->{shortcuts}{$shortcut} = $title;
+    $self->{to_comm}->enqueue(['shortcut', $shortcut, $title]);
+}
+
+
 sub browse {
     my ($url) = @_;
     my $action = {
@@ -612,13 +647,10 @@ sub show_message {
 
     my $type = $message =~ s{^/me(?=\s|')}{} ? GESTURE : PUBLIC;
     $message = decode($message);
-    my $ct = convert_time($timestamp, $tzoffset);
-    if ($self->{time_format}) {
-	$timestamp = $ct->strftime($self->{time_format});
-    } else {
-	$timestamp = $ct->strftime('<%Y-%m-%d %H:%M:%S> ');
-	substr $timestamp, 1, 11, q() if 0 == index $timestamp, $self->{last_date};
-    }
+    $timestamp = convert_time($timestamp, $tzoffset)
+                 ->strftime('%Y-%m-%d %H:%M:%S');
+
+    substr $timestamp, 0, 11, q() if 0 == index $timestamp, $self->{last_date};
     $self->show($timestamp, $author, $message, $type);
 }
 
@@ -654,9 +686,9 @@ sub convert_time {
 sub update_time {
     my ($self, $server_time, $tzoffset, $should_update) = @_;
     my $local_time = convert_time($server_time, $tzoffset);
-    my $tfmt = $self->{date_format} || '%Y-%m-%d %H:%M:%S';
     $self->{last_update}->configure(
-        -text => 'Last update: ' . $local_time->strftime($tfmt),
+        -text => 'Last update: '
+                 . $local_time->strftime('%Y-%m-%d %H:%M:%S'),
         -foreground => 'black');
     $self->{last_date} = $local_time->strftime('%Y-%m-%d') if $should_update;
 }
@@ -667,6 +699,7 @@ sub update_time {
         my ($self) = @_;
         $self->{to_comm}->enqueue([ 'login', $login, $password ]);
     }
+
 
     sub login_dialog {
         my ($self) = @_;
@@ -691,7 +724,8 @@ sub update_time {
         my $password_f = $dialog->Frame->pack(-fill => 'both');
         $password_f->Label(-text => 'Password: ')
             ->pack(-side => 'left', -fill => 'x');
-        my $password_e = $password_f->Entry(-show => '*')->pack(-side => 'right');
+        my $password_e = $password_f->Entry(-show => '*')
+	    ->pack(-side => 'right');
 
         my $reply = $dialog->Show;
         if ('Cancel' eq $reply) {
@@ -722,7 +756,7 @@ sub help {
     my @help = (
         '<Alt+,> previous history item',
         '<Alt+.> next history item',
-        '<Shift+Insert> paste clipboard',
+        '<{paste_keys}> paste clipboard',
         '<{copy_link}> copy link',
         '<Esc> to exit help',
     );
