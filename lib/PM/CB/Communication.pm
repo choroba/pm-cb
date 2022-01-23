@@ -7,10 +7,11 @@ use Encode;
 use Time::HiRes;
 use WWW::Mechanize;
 use XML::LibXML;
+use PM::CB::Common qw{ to_entities };
 
 use constant {
     FREQ             => 7,
-    REPEAT_THRESHOLD => 3,
+    REPEAT_THRESHOLD => 5,
     # Node ids:
     LOGIN            => 109,
     CB               => 207304,
@@ -226,8 +227,7 @@ sub send_message {
     my ($self, $message, $repeat) = @_;
     return unless length $message;
 
-    ( my $msg = $message )
-        =~ s/(.)/ord $1 > 127 ? '&#' . ord($1) . ';' : $1/ge;
+    my $msg = to_entities($message);
     my $response;
     eval { $response = $self->{mech}->post(
         $self->url . SEND,
