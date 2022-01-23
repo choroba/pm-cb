@@ -88,11 +88,13 @@ sub gui {
         # characters, the old length is returned.
         $mw->after(10, sub {
             if (CHAR_LIMIT < length to_entities($self->{write}->Contents)) {
-                $self->{write}->configure(-foreground => 'red')
-                    unless $self->{write}->cget('-foreground') eq 'red';
+                $self->{write}->configure(-foreground => $self->{warn_color})
+                    unless $self->{write}->cget('-foreground')
+                           eq $self->{warn_color};
             } else {
                 $self->{write}->configure(-foreground => $self->{fg_color})
-                    if $self->{write}->cget('-foreground') eq 'red';
+                    if $self->{write}->cget('-foreground')
+                       eq $self->{warn_color};
             }
         });
     });
@@ -277,6 +279,7 @@ sub show_options {
         [ 'Gesture Color'    => 'gesture_color' ],
         [ 'Timestamp Color'  => 'time_color' ],
         [ 'Seen Color'       => 'seen_color' ],
+        [ 'Warn Color'       => 'warn_color' ],
         [ 'Browser URL'      => 'browse_url' ],
         [ 'Copy Link'        => 'copy_link' ],
         [ 'Paste keys'       => 'paste_keys' ],
@@ -374,10 +377,12 @@ sub show_options {
 sub update_options {
     my ($self, $show_time, $new) = @_;
 
-    my %old = ( pm_url => $self->{pm_url},
-                random_url => $self->{random_url},
-                map +($_ => [ split ' ', $self->{$_} ]),
-                    qw( copy_link paste_keys ));
+    my %old = (pm_url     => $self->{pm_url},
+               random_url => $self->{random_url},
+               fg_color   => $self->{fg_color},
+               warn_color => $self->{warn_color},
+               map +($_ => [ split ' ', $self->{$_} ]),
+                   qw( copy_link paste_keys ));
 
     for my $opt (keys %$new) {
         $self->{$opt} = $new->{$opt} if ! exists $self->{$opt}
@@ -421,6 +426,16 @@ sub update_options {
     if ($old{pm_url} ne $self->{pm_url}) {
         $self->{to_comm}->enqueue(['url', $self->{pm_url}]);
         $self->send_login;
+    }
+
+    if ($self->{warn_color} eq $self->{fg_color}) {
+        $self->{warn_color}
+            = ($old{warn_color} eq $self->{warn_color})
+            ? $old{fg_color} : $old{warn_color};
+    }
+
+    if ($self->{warn_color} ne $old{warn_color}) {
+        $self->{write}->editModified(1);
     }
 }
 

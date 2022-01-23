@@ -13,16 +13,16 @@ use PM::CB::GUI;
 use PM::CB::Control;
 
 my ($bg_color, $fg_color, $author_color, $private_color, $gesture_color,
-    $time_color, $font_name, $char_size, $stack_size, $seen_color,
+    $time_color, $font_name, $char_size, $stack_size, $seen_color, $warn_color,
     $no_time, $help, $pm_url, $browse_url, $random_url, $copy_link,
     $mce, $geometry, $log, $paste_keys);
 
 BEGIN {
     ($bg_color, $fg_color, $author_color, $private_color, $gesture_color,
-     $time_color, $seen_color, $font_name, $char_size, $stack_size,
+     $time_color, $seen_color, $warn_color, $font_name, $char_size, $stack_size,
      $no_time, $help, $pm_url, $random_url, $copy_link)
-    = qw( white black blue magenta darkgreen darkcyan darkgray Helvetica
-          12 15 0 0 www.perlmonks.org 0 Control-Button-1);
+    = qw( white black blue magenta darkgreen darkcyan darkgray red Helvetica
+          12 15 0 0 www.perlmonks.org 0 Control-Button-1 red);
 
     $paste_keys = 'Shift-Insert';
     $paste_keys .= ' XF86Paste' if $^O ne 'MSWin32';
@@ -49,11 +49,14 @@ BEGIN {
         't|time_color=s'    => \$time_color,
         'u|url=s'           => \$pm_url,
         'U|browse_url=s'    => \$browse_url,
+        'w|warn_color=s'    => \$warn_color,
     ) or pod2usage(-verbose => 0, -exitval => 1);
     $browse_url //= $pm_url;
     die "Can't combine mce_hobo and mce_child.\n"
         if $mce->{hobo} && $mce->{child};
-    $mce= {} unless $mce->{hobo} || $mce->{child};
+    $mce = {} unless $mce->{hobo} || $mce->{child};
+
+    $warn_color = 'red' if $warn_color eq $fg_color;
 
     pod2usage(-verbose => 1, -exitval => 0) if $help;
 }
@@ -99,6 +102,7 @@ my $gui = 'PM::CB::GUI'->new({
     char_size     => $char_size,
     stack_size    => $stack_size,
     seen_color    => $seen_color,
+    warn_color    => $warn_color,
     mce           => keys %$mce ? $mce : undef,
     no_time       => $no_time,
     from_comm     => $to_gui,
@@ -231,6 +235,10 @@ The address to use to communicate with PerlMonks.
 The address to use to open PerlMonks links in the browser. Same as
 B<url> if not specified.
 
+=item B<w|warn_color> I<color>
+
+The color that indicates a too long message.
+
 =back
 
 =head1 AUTHOR
@@ -240,3 +248,5 @@ E. Choroba
 =head2 Contributors
 
 H.Merijn Brand, LorenzoTa, Mario Roy, Nick Tonkin, Steve Rogerson
+
+=cut
