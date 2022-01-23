@@ -7,6 +7,7 @@ use Syntax::Construct qw{ // };
 use charnames ();
 use Time::Piece;
 use List::Util qw{ shuffle };
+use PM::CB::Common qw{ to_entities };
 
 use constant {
     TITLE        => 'PM::CB::G',
@@ -14,6 +15,7 @@ use constant {
     PRIVATE      => 1,
     GESTURE      => 2,
     HISTORY_SIZE => 100,
+    CHAR_LIMIT   => 255,
 };
 
 
@@ -77,6 +79,23 @@ sub gui {
         -insertbackground => $self->{fg_color},
         -wrap             => 'word',
     )->pack(-fill => 'x');
+    $self->{write}->bind('<<Modified>>', sub {
+        return unless $self->{write}->editModified;
+
+        $self->{write}->editModified(0);
+
+        # We can't check the length immediately, because when deleting
+        # characters, the old length is returned.
+        $mw->after(10, sub {
+            if (CHAR_LIMIT < length to_entities($self->{write}->Contents)) {
+                $self->{write}->configure(-foreground => 'red')
+                    unless $self->{write}->cget('-foreground') eq 'red';
+            } else {
+                $self->{write}->configure(-foreground => $self->{fg_color})
+                    if $self->{write}->cget('-foreground') eq 'red';
+            }
+        });
+    });
 
     my $cb_paste = sub {
         my $paste = eval { $write->SelectionGet }
