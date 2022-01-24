@@ -27,6 +27,7 @@ BEGIN {
         gesture_color => 'darkgreen',
         time_color    => 'darkcyan',
         seen_color    => 'darkgray',
+        warn_color    => 'red',
         font_name     => 'Helvetica',
         char_size     => 12,
         stack_size    => 15,
@@ -89,6 +90,7 @@ BEGIN {
         'r|random_url'      => \$conf{random_url},
         's|stack_size=i'    => \$conf{stack_size},
         'S|seen_color=s'    => \$conf{seen_color},
+        'w|warn_color=s'    => \$conf{warn_color},
         't|time_color=s'    => \$conf{time_color},
         'u|url=s'           => \$conf{pm_url},
         'U|browse_url=s'    => \$conf{browse_url},
@@ -109,6 +111,8 @@ BEGIN {
 	    split m/\s+/ => $conf{$attr};
 	}
     exists $conf{xmodifiers} && !$conf{xmodifiers} and delete $ENV{XMODIFIERS};
+
+    $conf{warn_color} eq $conf{fg_color} and $conf{warn_color} = "red";
 
     pod2usage(-verbose => 1, -exitval => 0) if $help;
 }
@@ -265,6 +269,10 @@ The address to use to communicate with PerlMonks.
 The address to use to open PerlMonks links in the browser. Same as
 B<url> if not specified.
 
+=item B<w|warn_color> I<color>
+
+The color that indicates a too long message.
+
 =back
 
 =head1 AUTHOR
@@ -274,3 +282,5 @@ E. Choroba
 =head2 Contributors
 
 H.Merijn Brand, LorenzoTa, Mario Roy, Nick Tonkin, Steve Rogerson
+
+=cut
