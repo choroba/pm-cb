@@ -57,6 +57,7 @@ BEGIN {
     $mce = {} unless $mce->{hobo} || $mce->{child};
 
     $warn_color = 'red' if $warn_color eq $fg_color;
+    $warn_color = 'orange' if $warn_color eq $fg_color;
 
     pod2usage(-verbose => 1, -exitval => 0) if $help;
 }
