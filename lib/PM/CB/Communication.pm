@@ -290,6 +290,7 @@ sub get_all_private {
         $url = $self->url . PRIVATE . "&prior_to=$first";
     }
 
+    @private = sort { $a->{time} cmp $b->{time} } @private;
     return @private
 }
 
