@@ -627,7 +627,7 @@ sub add_clickable {
     $text->tagBind($tag, '<Leave>',
                    sub { $self->{balloon}->detach($text) });
     $text->tagBind($tag, '<Button-1>',
-                   sub { browse($self->url($url)) });
+                   sub { $self->browse($url) });
     $text->tagBind($tag, "<$_>",
                    sub { $text->clipboardClear;
                          $text->clipboardAppend($self->url($url)) }
@@ -663,11 +663,13 @@ sub ask_shortcut {
 
 
 sub browse {
-    my ($url) = @_;
-    my $action = {
-        MSWin32 => sub { system 1, qq{start "$url" /b "$url"} },
-        darwin  => sub { system qq{open "$url" &} },
-    }->{$^O}    || sub { system qq{xdg-open "$url" &} };
+    my ($self, $url) = @_;
+    $url = $self->url($url);
+    my $action = $self->{browser}
+        ? sub { system qq{$self->{browser} "$url" &} }
+        : {MSWin32 => sub { system 1, qq{start "$url" /b "$url"} },
+           darwin  => sub { system qq{open "$url" &} },
+          }->{$^O} || sub { system qq{xdg-open "$url" &} };
     $action->();
 }
 

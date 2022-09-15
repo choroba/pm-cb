@@ -15,7 +15,7 @@ use PM::CB::Control;
 my ($bg_color, $fg_color, $author_color, $private_color, $gesture_color,
     $time_color, $font_name, $char_size, $stack_size, $seen_color, $warn_color,
     $no_time, $help, $pm_url, $browse_url, $random_url, $copy_link,
-    $mce, $geometry, $log, $paste_keys);
+    $mce, $geometry, $log, $paste_keys, $browser);
 
 BEGIN {
     ($bg_color, $fg_color, $author_color, $private_color, $gesture_color,
@@ -30,6 +30,7 @@ BEGIN {
     GetOptions(
         'a|author_color=s'  => \$author_color,
         'b|bg_color=s'      => \$bg_color,
+        'B|browser=s'       => \$browser,
         'c|char_size=i'     => \$char_size,
         'C|copy_link=s'     => \$copy_link,
         'f|fg_color=s'      => \$fg_color,
@@ -111,6 +112,7 @@ my $gui = 'PM::CB::GUI'->new({
     to_control    => $to_control,
     control_t     => $control_t,
     browse_url    => $browse_url,
+    browser       => $browser,
     random_url    => $random_url,
     geometry      => $geometry,
     log           => $log,
@@ -136,7 +138,7 @@ pm-cb-g - A GUI client to PerlMonks' Chatter Box
   pm-cb-g -a blue -b white -c 12 -f black -F Helvetica
           -p magenta -s 15 -S darkgray -t darkcyan -g darkgreen
           -u www.perlmonks.org -U www.perlmonks.org
-          -C Control-Button-1 -l ""
+          -C Control-Button-1 -l "" -B firefox
           [ -h -m/-M -n ]
 
 =head1 OPTIONS
@@ -154,6 +156,11 @@ The color to display the names of authors of public messages.
 =item B<b|bg_color> I<color>
 
 The background color of the application.
+
+=item B<B|browser> I<command>
+
+The command ran to open urls. By default uses the system's default
+browser.
 
 =item B<c|char_size> I<size>
 
