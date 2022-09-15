@@ -172,6 +172,7 @@ sub handle_url {
 
             $titles{$id} = $title = $dom->findvalue('/node/@title');
         }
+        $title = "untitled node, ID $id" unless length $title;
         $self->{to_gui}->enqueue(['title', $id, $name, $title]);
     }
 }
