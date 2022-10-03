@@ -207,15 +207,15 @@ sub gui {
     });
 
     $mw->repeat(10_000, sub {
-        for my $id (shuffle(keys %{ $self->{ids} })) {
+        # Ask just one not to overload the server.
+        if (my $id = (shuffle(keys %{ $self->{ids} }))[0]) {
             warn "PMCB: Reasking $id";
             $self->ask_title($id, $self->{ids}{$id});
-            last # Don't overload the server
         }
-        for my $shortcut (shuffle(keys %{ $self->{shortcuts} })) {
+
+        if (my $shortcut = (shuffle(keys %{ $self->{shortcuts} }))[0]) {
             warn "PMCB: Reasking $shortcut";
             $self->ask_title($shortcut, $self->{shortcuts}{$shortcut});
-            last
         }
     });
 
