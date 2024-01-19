@@ -423,7 +423,7 @@ sub update_options {
     $self->{no_time} = ! $show_time;
 
     $self->{to_control}->enqueue(['random_url', $self->{random_url}]);
-    if ($old{pm_url} ne $self->{pm_url}) {
+    if (($old{pm_url} // "") ne ($self->{pm_url} // "")) {
         $self->{to_comm}->enqueue(['url', $self->{pm_url}]);
         $self->send_login;
     }
