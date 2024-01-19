@@ -9,12 +9,13 @@ use List::Util qw{ shuffle };
 use PM::CB::Common qw{ to_entities };
 
 use constant {
-    TITLE        => 'PM::CB::G',
-    PUBLIC       => 0,
-    PRIVATE      => 1,
-    GESTURE      => 2,
-    HISTORY_SIZE => 100,
-    CHAR_LIMIT   => 255,
+    TITLE           => 'PM::CB::G',
+    PUBLIC          => 0,
+    PRIVATE         => 1,
+    GESTURE         => 2,
+    REASK_THRESHOLD => 10,
+    HISTORY_SIZE    => 100,
+    CHAR_LIMIT      => 255,
 };
 
 
@@ -208,13 +209,26 @@ sub gui {
     $mw->repeat(10_000, sub {
         # Ask just one not to overload the server.
         if (my $id = (shuffle(keys %{ $self->{ids} }))[0]) {
-            warn "PMCB: Reasking $id";
-            $self->ask_title($id, $self->{ids}{$id});
+            warn "PMCB: Reasking id $id";
+            $self->ask_title($id, $self->{ids}{$id}{name});
+            if (++$self->{ids}{$id}{count} > REASK_THRESHOLD) {
+                warn "PMCB: Asked 10 times for $id ($self->{ids}{$id}{name})";
+                $self->show_title(
+                    $id, $self->{ids}{$id}{name}, $self->{ids}{$id}{name});
+            }
         }
 
         if (my $shortcut = (shuffle(keys %{ $self->{shortcuts} }))[0]) {
-            warn "PMCB: Reasking $shortcut";
-            $self->ask_title($shortcut, $self->{shortcuts}{$shortcut});
+            warn "PMCB: Reasking shortcut $shortcut";
+            $self->ask_shortcut($shortcut,
+                                $self->{shortcuts}{$shortcut}{title});
+            if (++$self->{shortcuts}{$shortcut}{count} > REASK_THRESHOLD) {
+                warn "PMCB: Asked 10 times for $shortcut "
+                    . "($self->{shortcuts}{$shortcut}{title})";
+                $self->show_shortcut(
+                    $shortcut, $self->{shortcuts}{$shortcut}{title},
+                    $self->{shortcuts}{$shortcut}{title});
+            }
         }
     });
 
@@ -461,6 +475,7 @@ sub show_title {
 
 sub show_shortcut {
     my ($self, $shortcut, $url, $title) = @_;
+    $url = "https://www.perlmonks.org/?node=$shortcut" if 0 == length $url;
     delete $self->{shortcuts}{$shortcut};
     my $old_tag = "shortcut:$shortcut|$title";
     my $new_tag = "browse:$url|$title";
@@ -654,14 +669,14 @@ sub show_list {
 
 sub ask_title {
     my ($self, $id, $name) = @_;
-    $self->{ids}{$id} = $name;
+    $self->{ids}{$id}{name} = $name;
     $self->{to_comm}->enqueue(['title', $id, $name]);
 }
 
 
 sub ask_shortcut {
     my ($self, $shortcut, $title) = @_;
-    $self->{shortcuts}{$shortcut} = $title;
+    $self->{shortcuts}{$shortcut}{title} = $title;
     $self->{to_comm}->enqueue(['shortcut', $shortcut, $title]);
 }
 
