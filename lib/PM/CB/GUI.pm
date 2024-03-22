@@ -576,7 +576,7 @@ sub show {
                                      | (?:meta)?mod | doc
                                      | id | node | href
                                      | pad
-                                   )://.+?\s*|[^\]]+)\]}gx
+                                   )://.+?\s*|[^\]]+)\]}gix
         ) {
             my $orig = $1;
             my ($url, $name) = split /\|/, $orig;
@@ -590,23 +590,23 @@ sub show {
 
             $name = $url unless length $name;
             s/^\s+//, s/\s+$// for $name, $url;
-            $url =~ s{^(?:(?:meta)?mod|doc)://}{http://p3rl.org/};
+            $url =~ s{^(?:(?:meta)?mod|doc)://}{http://p3rl.org/}i;
             $url =~ s{^pad://([^|\]]*)}
                      {length $1
                           ? $self->url("__PM_CB_URL__$1's+scratchpad")
-                          : $self->url("__PM_CB_URL__$author\'s+scratchpad")}e;
-            $url =~ s{^href://}{ $self->url("__PM_CB_URL__", "") }e;
-            $url =~ s{^node://}{ $self->url("__PM_CB_URL__") }e;
+                          : $self->url("__PM_CB_URL__$author\'s+scratchpad")}ie;
+            $url =~ s{^href://}{ $self->url("__PM_CB_URL__", "") }ie;
+            $url =~ s{^node://}{ $self->url("__PM_CB_URL__") }ie;
 
             my $tag = "browse:$url|$name";
 
-            if ($url =~ m{^id://([0-9]+)}) {
+            if ($url =~ m{^id://([0-9]+)}i) {
                 my $id = $1;
                 $self->ask_title($id, $url) if $name eq $url;
-                $url =~ s{^id://[0-9]+}{ $self->url("__PM_CB_URL__$id", '?node_id=') }e;
+                $url =~ s{^id://[0-9]+}{ $self->url("__PM_CB_URL__$id", '?node_id=') }ie;
                 $tag = "browse:$id|$name";
 
-            } elsif ($url =~ m{://} && $url !~ m{^https?://}
+            } elsif ($url =~ m{://} && $url !~ m{^https?://}i
                      && $orig =~ /^\Q$url\E\|?/
             ) {
                 $name =~ s{^.+?://}{} if $name eq $url;
@@ -614,7 +614,7 @@ sub show {
                 $tag = "shortcut:$url|$name";
 
             } else {
-                substr $url, 0, 0, '__PM_CB_URL__' unless $url =~ m{^https?://};
+                substr $url, 0, 0, '__PM_CB_URL__' unless $url =~ m{^https?://}i;
                 $tag = "browse:$url|$name";
             }
 
