@@ -248,7 +248,12 @@ sub send_message {
         return
     }
     my $content = $response->content;
-    return if $content =~ /^Chatter accepted/;
+    if ($content =~ /^Chatter accepted/) {
+        if ($message =~ m{^/msg\s+(\S+)\s+(.*)}) {
+            $self->{to_gui}->enqueue([ private => "-> $1", undef, $2 ]);
+        }
+        return
+    }
 
     $self->{to_gui}->enqueue([ private => '<pm-cb-g>', undef, $content ]);
 }
