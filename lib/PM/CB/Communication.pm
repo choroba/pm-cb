@@ -165,14 +165,19 @@ sub handle_url {
                 return
             }
 
+            # Only use the surrogate title when the page works but has no
+            # title. Locked users, for example, don't return anything, so
+            # surrogate title isn't used.
             my $dom;
             eval {
-                $dom = 'XML::LibXML'->load_xml(string => $self->mech_content)
+                $dom = 'XML::LibXML'->load_xml(string => $self->mech_content);
             } or return;
 
-            $titles{$id} = $title = $dom->findvalue('/node/@title');
+            $title = $dom->findvalue('/node/@title');
+            $title = "untitled node, ID $id" unless length $title;
+            $titles{$id} = $title;
         }
-        $title = "untitled node, ID $id" unless length $title;
+
         $self->{to_gui}->enqueue(['title', $id, $name, $title]);
     }
 }
