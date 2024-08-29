@@ -274,7 +274,7 @@ sub get_all_private {
     while (1) {
         my $response;
         eval { $response = $self->{mech}->get($url) };
-        next unless $response && $response->is_success;
+        last unless $response && $response->is_success;
 
         my $content = $self->mech_content;
         last unless $content =~ /</;
