@@ -15,10 +15,12 @@ use constant {
     # Node ids:
     LOGIN            => 109,
     CB               => 207304,
+    DELETE           => 50772,
     SEND             => 227820,
     PRIVATE          => 15848,
     MONKLIST         => 15851,
     SHORTCUT         => 11136513,
+    RANDOM_SHORT     => 3193,
 };
 
 
@@ -45,15 +47,16 @@ sub communicate {
     my $last_update = -1;
     my ($message, $command);
     my %dispatch = (
-        login    => sub { $self->login(@$message)
+        login     => sub { $self->login(@$message)
                            or $self->{to_gui}->enqueue(['login']) },
-        send     => sub { $message->[0] =~ tr/\x00-\x20/ /s;
-                       $self->send_message($message->[0]) },
-        title    => sub { $self->get_title(@$message) },
-        shortcut => sub { $self->get_shortcut(@$message) },
-        url      => sub { $self->handle_url(@$message) },
-        list     => sub { $self->get_monklist },
-        quit     => sub { no warnings 'exiting'; last },
+        send      => sub { $message->[0] =~ tr/\x00-\x20/ /s;
+                           $self->send_message($message->[0]) },
+        title     => sub { $self->get_title(@$message) },
+        shortcut  => sub { $self->get_shortcut(@$message) },
+        deletemsg => sub { $self->delete_msg(@$message) },
+        url       => sub { $self->handle_url(@$message) },
+        list      => sub { $self->get_monklist },
+        quit      => sub { no warnings 'exiting'; last },
     );
 
     while (1) {
@@ -105,7 +108,7 @@ sub communicate {
         my @private = $self->get_all_private(\%seen);
         for my $msg (@private) {
             $self->{to_gui}->enqueue([
-                private => @$msg{qw{ author time text }}
+                private => @$msg{qw{ author time text id }}
             ]) unless exists $seen{"p$msg->{id}"};
             undef $seen{"p$msg->{id}"};
         }
@@ -254,12 +257,26 @@ sub send_message {
     my $content = $response->content;
     if ($content =~ /^Chatter accepted/) {
         if ($message =~ m{^/msg\s+(\S+)\s+(.*)}) {
-            $self->{to_gui}->enqueue([ private => "-> $1", undef, $2 ]);
+            $self->{to_gui}->enqueue([ private => "-> $1", undef, $2, 0 ]);
         }
         return
     }
 
-    $self->{to_gui}->enqueue([ private => '<pm-cb-g>', undef, $content ]);
+    $self->{to_gui}->enqueue([ private => '<pm-cb-g>', undef, $content, 0 ]);
+}
+
+
+sub delete_msg {
+    my ($self, $id) = @_;
+    my $response;
+    eval { $response = $self->{mech}->post(
+        $self->url . DELETE,
+        Content => { op              => 'message',
+                     node            => RANDOM_SHORT,
+                     "deletemsg_$id" => 'yup',
+                     perlisgood      => 'delete'})};
+    $self->{to_gui}->enqueue(['delete', $id])
+        if $response && $response->is_success;
 }
 
 

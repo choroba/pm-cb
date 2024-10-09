@@ -192,6 +192,7 @@ sub gui {
                                 $self->increment_unread; },
             private    => sub { $self->show_private(@$msg, $tzoffset);
                                 $self->increment_unread; },
+            delete     => sub { $self->deleted(@$msg) },
             title      => sub { $self->show_title(@$msg) },
             shortcut   => sub { $self->show_shortcut(@$msg) },
             send_login => sub { $self->send_login },
@@ -545,16 +546,18 @@ sub decode {
 
 
 sub show {
-    my ($self, $timestamp, $author, $message, $type) = @_;
+    my ($self, $timestamp, $author, $message, $type, $id) = @_;
 
     my $text = $self->{read};
     $text->insert(end => $timestamp, ['time']) unless $self->{no_time};
     my $author_separator = $type == GESTURE ? "" : ': ';
     my $s_author = sprintf ($self->{author_format}, $author) . $author_separator;
     $text->insert(end => $s_author,
-                  { (PRIVATE) => 'private',
+                  { (PRIVATE) => ['private', "deletemsg_$id" x !! $id],
                     (PUBLIC)  => 'author',
                     (GESTURE) => 'gesture' }->{$type});
+    $self->{read}->tagBind("deletemsg_$id", '<Button-1>',
+                sub { $self->{to_comm}->enqueue(['deletemsg', $id]) });
     my ($line, $column) = split /\./, $text->index('end');
     --$line;
     $column += length($timestamp) * ! $self->{no_time} + length $s_author;
@@ -654,6 +657,12 @@ sub add_clickable {
 }
 
 
+sub deleted {
+    my ($self, $id) = @_;
+    $self->{read}->tagConfigure("deletemsg_$id" => -overstrike => 1);
+}
+
+
 sub show_list {
     my ($self, @monks) = @_;
     $self->{read}->insert('end', '[Active Monks]', ['private']);
@@ -705,7 +714,7 @@ sub show_message {
 
 
 sub show_private {
-    my ($self, $author, $time, $msg, $tzoffset) = @_;
+    my ($self, $author, $time, $msg, $id, $tzoffset) = @_;
     $msg = decode($msg);
     $msg =~ s/[\n\r]//g;
 
@@ -719,7 +728,7 @@ sub show_private {
     }
     $time = $time->strftime('%Y-%m-%d %H:%M:%S ');
 
-    $self->show($time, $author, $msg, PRIVATE);
+    $self->show($time, $author, $msg, PRIVATE, $id);
 }
 
 
