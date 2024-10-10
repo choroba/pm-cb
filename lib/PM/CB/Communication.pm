@@ -11,8 +11,9 @@ use XML::LibXML;
 use PM::CB::Common qw{ to_entities };
 
 use constant {
-    FREQ             => 7,
+    FREQ             => 10,
     REPEAT_THRESHOLD => 5,
+    NOT_DELETABLE    => 0,
     # Node ids:
     LOGIN            => 109,
     CB               => 207304,
@@ -39,7 +40,7 @@ sub communicate {
 
     my $mech = $self->{mech}
         = 'WWW::Mechanize'->new(
-            timeout => 16,
+            timeout => 120,
             autocheck => 0,
             ssl_opts => $self->ssl_opts);
 
@@ -258,12 +259,14 @@ sub send_message {
     my $content = $response->content;
     if ($content =~ /^Chatter accepted/) {
         if ($message =~ m{^/msg\s+(\S+)\s+(.*)}) {
-            $self->{to_gui}->enqueue([ private => "-> $1", undef, $2, 0 ]);
+            $self->{to_gui}->enqueue(
+                [private => "-> $1", undef, $2, NOT_DELETABLE]);
         }
         return
     }
 
-    $self->{to_gui}->enqueue([ private => '<pm-cb-g>', undef, $content, 0 ]);
+    $self->{to_gui}->enqueue(
+        [private => '<pm-cb-g>', undef, $content, NOT_DELETABLE]);
 }
 
 
