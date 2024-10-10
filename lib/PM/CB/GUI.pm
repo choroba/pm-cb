@@ -656,6 +656,7 @@ sub add_clickable {
 sub deleted {
     my ($self, $id) = @_;
     $self->{read}->tagConfigure("deletemsg_$id" => -overstrike => 1);
+    $self->{read}->tagBind("deletemsg_$id", '<Button-1>', undef);
 }
 
 
