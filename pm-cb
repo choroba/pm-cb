@@ -11,7 +11,7 @@ use WWW::Mechanize;
 my $debug = @ARGV && '-d' eq shift;
 
 use constant {
-    PM_URL => 'http://www.perlmonks.org/bare/?node_id=',
+    PM_URL => 'http://www.perlmonks.org/bare/index.pl?node_id=',
     FREQ   => 7,
     # Node ids:
     LOGIN => 109,

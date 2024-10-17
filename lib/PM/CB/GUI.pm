@@ -29,7 +29,7 @@ sub url {
     my ($self, $url, $part) = @_;
     $url //= '__PM_CB_URL__';
     $part //= "?node=";
-    $url =~ s{__PM_CB_URL__}{https://$self->{browse_url}/$part};
+    $url =~ s{__PM_CB_URL__}{https://$self->{browse_url}/index.pl$part};
     return $url
 }
 
@@ -476,7 +476,8 @@ sub show_title {
 
 sub show_shortcut {
     my ($self, $shortcut, $url, $title) = @_;
-    $url = "https://www.perlmonks.org/?node=$shortcut" if 0 == length $url;
+    $url = "https://$self->{browse_url}/index.pl?node=$shortcut"
+        if 0 == length $url;
     delete $self->{shortcuts}{$shortcut};
     my $old_tag = "shortcut:$shortcut|$title";
     my $new_tag = "browse:$url|$title";
