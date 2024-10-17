@@ -546,11 +546,12 @@ sub show {
     $text->insert(end => "<$timestamp> ", ['time']) unless $self->{no_time};
     my $author_separator = $type == GESTURE ? "" : ': ';
     $text->insert(end => "[$author]$author_separator",
-                  { (PRIVATE) => ['private', "deletemsg_$id" x !! $id],
+                  { (PRIVATE) => ['private', $id ? "deletemsg_$id" : ""],
                     (PUBLIC)  => 'author',
                     (GESTURE) => 'gesture' }->{$type});
     $self->{read}->tagBind("deletemsg_$id", '<Button-1>',
-                sub { $self->{to_comm}->enqueue(['deletemsg', $id]) });
+                sub { $self->{to_comm}->enqueue(['deletemsg', $id]) })
+        if $id;
     my ($line, $column) = split /\./, $text->index('end');
     --$line;
     $column += (3 + length($timestamp)) * ! $self->{no_time} + 2
