@@ -31,7 +31,7 @@ sub new {
 }
 
 
-sub url { "https://$_[0]{pm_url}/bare/?node_id=" }
+sub url { "https://$_[0]{pm_url}/bare/index.pl?node_id=" }
 
 
 sub communicate {
