@@ -117,7 +117,8 @@ my $gui = 'PM::CB::GUI'->new({
     geometry      => $geometry,
     log           => $log,
     copy_link     => $copy_link,
-    paste_keys    => $paste_keys});
+    paste_keys    => $paste_keys,
+    icon          => $FindBin::Bin . '/pm.xpm'});
 
 $gui->gui;
 
