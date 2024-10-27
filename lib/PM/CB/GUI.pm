@@ -548,12 +548,16 @@ sub show {
     $text->insert(end => "<$timestamp> ", ['time']) unless $self->{no_time};
     my $author_separator = $type == GESTURE ? "" : ': ';
     $text->insert(end => "[$author]$author_separator",
-                  { (PRIVATE) => ['private', $id ? "deletemsg_$id" : ""],
+                  { (PRIVATE) => ['private', "msg_$author",
+                                  $id ? "deletemsg_$id" : ""],
                     (PUBLIC)  => 'author',
                     (GESTURE) => 'gesture' }->{$type});
     $self->{read}->tagBind("deletemsg_$id", '<Button-1>',
                 sub { $self->{to_comm}->enqueue(['deletemsg', $id]) })
         if $id;
+    $self->{read}->tagBind("msg_$author", '<Button-2>',
+                sub { $self->{write}->insert('1.0' => "/msg $author ") })
+        unless $self->{read}->tagBind("msg_$author");
     my ($line, $column) = split /\./, $text->index('end');
     --$line;
     $column += (3 + length($timestamp)) * ! $self->{no_time} + 2
@@ -812,6 +816,8 @@ sub help {
         '<Alt+.> next history item',
         '<{paste_keys}> paste clipboard',
         '<{copy_link}> copy link',
+        '<Button-1> to delete a private message',
+        '<Button-2> to reply to a private message',
         '<Esc> to exit help',
     );
     $self->{opt_h}->configure(-state => 'disabled');
