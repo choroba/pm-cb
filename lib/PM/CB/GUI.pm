@@ -48,10 +48,13 @@ sub gui {
     require Tk::Balloon;
 
     $self->{mw} = my $mw = 'MainWindow'->new(-title => TITLE);
-    $mw->iconimage($mw->Pixmap(-file => $self->{icon}));
     $mw->protocol(WM_DELETE_WINDOW => sub { $self->quit });
     $mw->geometry($self->{geometry}) if $self->{geometry};
     $mw->optionAdd('*font', "$self->{font_name} $self->{char_size}");
+    $self->{icon}       = $mw->Pixmap(-file => "$self->{icon_path}/pm.xpm");
+    $self->{icon_alert} = $mw->Pixmap(-file => "$self->{icon_path}/alert.xpm");
+    $mw->iconimage($self->{icon});
+    $mw->iconname('normal');
 
     my $read_f = $mw->Frame->pack(-expand => 1, -fill => 'both');
     $self->{read} = my $read
@@ -188,10 +191,8 @@ sub gui {
             time       => sub { $self->update_time($msg->[0], $tzoffset,
                                                    $msg->[1]) },
             login      => sub { $self->login_dialog },
-            chat       => sub { $self->show_message($tzoffset, @$msg);
-                                $self->increment_unread; },
-            private    => sub { $self->show_private(@$msg, $tzoffset);
-                                $self->increment_unread; },
+            chat       => sub { $self->show_message($tzoffset, @$msg) },
+            private    => sub { $self->show_private(@$msg, $tzoffset) },
             delete     => sub { $self->deleted(@$msg) },
             title      => sub { $self->show_title(@$msg) },
             shortcut   => sub { $self->show_shortcut(@$msg) },
@@ -205,6 +206,11 @@ sub gui {
             my $type = shift @$msg;
             $dispatch{$type}->();
         }
+        if ($self->{alert} && defined $self->{mw}->focusCurrent) {
+            delete $self->{alert};
+            $self->blink_icon(1);
+        }
+        $self->blink_icon if $self->{alert};
     });
 
     $mw->repeat(10_000, sub {
@@ -546,16 +552,17 @@ sub show {
     $text->insert(end => "<$timestamp> ", ['time']) unless $self->{no_time};
     my $author_separator = $type == GESTURE ? "" : ': ';
     $text->insert(end => "[$author]$author_separator",
-                  { (PRIVATE) => ['private', "msg_$author",
-                                  $id ? "deletemsg_$id" : ""],
+                  { (PRIVATE) => ['private',
+                                  $id ? ("msg_$author", "deletemsg_$id") : ""],
                     (PUBLIC)  => 'author',
                     (GESTURE) => 'gesture' }->{$type});
-    $self->{read}->tagBind("deletemsg_$id", '<Button-1>',
-                sub { $self->{to_comm}->enqueue(['deletemsg', $id]) })
-        if $id;
-    $self->{read}->tagBind("msg_$author", '<Button-2>',
+    if ($id) {
+        $self->{read}->tagBind("deletemsg_$id", '<Button-1>',
+            sub { $self->{to_comm}->enqueue(['deletemsg', $id]) });
+        $self->{read}->tagBind("msg_$author", '<Button-2>',
                 sub { $self->{write}->insert('1.0' => "/msg $author ") })
-        unless $self->{read}->tagBind("msg_$author");
+            unless $self->{read}->tagBind("msg_$author");
+    }
     my ($line, $column) = split /\./, $text->index('end');
     --$line;
     $column += (3 + length($timestamp)) * ! $self->{no_time} + 2
@@ -565,6 +572,8 @@ sub show {
     $self->{log_fh}->printflush(
         "<$timestamp> [$author]$author_separator$message\n"
     ) if $self->{log_fh};
+
+    $self->{alert} = 1 if $id || $message =~ /$self->{username}/i;
 
     my $fix_length = 0;
     my $start_pos = 0;
@@ -714,6 +723,7 @@ sub show_message {
 
     substr $timestamp, 0, 11, q() if 0 == index $timestamp, $self->{last_date};
     $self->show($timestamp, $author, $message, $type);
+    $self->increment_unread;
 }
 
 
@@ -733,6 +743,7 @@ sub show_private {
     $time = $time->strftime('%Y-%m-%d %H:%M:%S');
 
     $self->show($time, $author, $msg, PRIVATE, $id);
+    $self->increment_unread if $id;
 }
 
 
@@ -759,6 +770,7 @@ sub update_time {
 {   my ($login, $password);
     sub send_login {
         my ($self) = @_;
+        $self->{username} = $login;
         $self->{to_comm}->enqueue([ 'login', $login, $password ]);
     }
 
@@ -792,6 +804,21 @@ sub update_time {
         ($login, $password) = ($username_e->get, $password_e->get);
         $self->send_login;
     }
+}
+
+
+sub blink_icon {
+    my ($self, $to_normal) = @_;
+    $self->{mw}->idletasks;
+    my $current_icon = $self->{mw}->iconname;
+    return if $to_normal && 'normal' eq $current_icon;
+
+    my $new_icon = qw( alert normal )[ $current_icon eq 'alert' ];
+    $self->{mw}->idletasks;
+    $self->{mw}->iconimage($self->{
+        qw( icon icon_alert )[ $new_icon eq 'alert'] });
+    $self->{mw}->idletasks;
+    $self->{mw}->iconname($new_icon);
 }
 
 
