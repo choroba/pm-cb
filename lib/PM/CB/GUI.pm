@@ -553,15 +553,20 @@ sub show {
     my $author_separator = $type == GESTURE ? "" : ': ';
     $text->insert(end => "[$author]$author_separator",
                   { (PRIVATE) => ['private',
-                                  $id ? ("msg_$author", "deletemsg_$id") : ""],
-                    (PUBLIC)  => 'author',
-                    (GESTURE) => 'gesture' }->{$type});
+                                  $id ? ("msg_$author", "deletemsg_$id") : ()],
+                    (PUBLIC)  => ['author',  "mention_$author"],
+                    (GESTURE) => ['gesture', "mention_$author"] }->{$type});
     if ($id) {
         $self->{read}->tagBind("deletemsg_$id", '<Button-1>',
             sub { $self->{to_comm}->enqueue(['deletemsg', $id]) });
         $self->{read}->tagBind("msg_$author", '<Button-2>',
                 sub { $self->{write}->insert('1.0' => "/msg $author ") })
             unless $self->{read}->tagBind("msg_$author");
+    } else {
+        warn "tag mention $author";
+        $self->{read}->tagBind("mention_$author", '<Button-2>',
+                sub { $self->{write}->insert('1.0' => "[$author]: ") })
+            unless $self->{read}->tagBind("mention_$author");
     }
     my ($line, $column) = split /\./, $text->index('end');
     --$line;
@@ -842,7 +847,7 @@ sub help {
         '<{paste_keys}> paste clipboard',
         '<{copy_link}> copy link',
         '<Button-1> to delete a private message',
-        '<Button-2> to reply to a private message',
+        '<Button-2> to reply to a message (both private and public',
         '<Esc> to exit help',
     );
     $self->{opt_h}->configure(-state => 'disabled');
