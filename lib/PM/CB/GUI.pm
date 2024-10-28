@@ -181,8 +181,6 @@ sub gui {
                   );
               });
 
-    my ($username, $password);
-
     $mw->repeat(1000, sub {
         my $msg;
         my %dispatch = (
