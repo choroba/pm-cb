@@ -560,7 +560,7 @@ sub show {
     my $s_author = sprintf ($self->{author_format}, $author) . $author_separator;
     $text->insert(end => $s_author,
                   { (PRIVATE) => ['private',
-                                  $id ? ("msg_author", "deletemsg_$id") : ("", "")],
+                                  $id ? ("msg_author", "deletemsg_$id") : ""],
                     (PUBLIC)  => 'author',
                     (GESTURE) => 'gesture' }->{$type});
     if ($id) {

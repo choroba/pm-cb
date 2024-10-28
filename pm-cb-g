@@ -39,7 +39,7 @@ BEGIN {
         copy_link     => 'Control-Button-1',
         paste_keys    => 'Shift-Insert',
         random_url    => 0,
-        icon          => $FindBin::Bin . '/pm.xpm',
+        icon_path     => $FindBin::Bin,
         );
     $^O eq 'MSWin32' or $conf{paste_keys} .= ' XF86Paste';
 
