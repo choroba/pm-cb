@@ -92,7 +92,7 @@ sub gui {
         # characters, the old length is returned.
         $mw->after(10, sub {
             if (CHAR_LIMIT < length to_entities($self->{write}->Contents)) {
-		$self->{write}->configure(-foreground => $self->{warn_color})
+                $self->{write}->configure(-foreground => $self->{warn_color})
                     unless $self->{write}->cget('-foreground')
                            eq $self->{warn_color};
             } else {
@@ -560,7 +560,7 @@ sub show {
     my $s_author = sprintf ($self->{author_format}, $author) . $author_separator;
     $text->insert(end => $s_author,
                   { (PRIVATE) => ['private',
-                                  $id ? ("msg_author", "deletemsg_$id") : ""],
+                                  $id ? ("msg_$author", "deletemsg_$id") : ""],
                     (PUBLIC)  => 'author',
                     (GESTURE) => 'gesture' }->{$type});
     if ($id) {
