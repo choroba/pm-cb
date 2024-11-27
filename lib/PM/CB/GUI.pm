@@ -570,7 +570,6 @@ sub show {
                 sub { $self->{write}->insert('1.0' => "/msg $author ") })
             unless $self->{read}->tagBind("msg_$author");
     } else {
-        warn "tag mention $author";
         $self->{read}->tagBind("mention_$author", '<Button-2>',
                 sub { $self->{write}->insert('1.0' => "[$author]: ") })
             unless $self->{read}->tagBind("mention_$author");
