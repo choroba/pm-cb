@@ -846,7 +846,7 @@ sub help {
         '<{paste_keys}> paste clipboard',
         '<{copy_link}> copy link',
         '<Button-1> to delete a private message',
-        '<Button-2> to reply to a message (both private and public',
+        '<Button-2> to reply to a message (both private and public)',
         '<Esc> to exit help',
     );
     $self->{opt_h}->configure(-state => 'disabled');
