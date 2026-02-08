@@ -249,6 +249,9 @@ sub gui {
         }
     });
 
+    $mw->after(10_000, sub { $self->{to_comm}->enqueue(['nodes'])});
+    $mw->repeat(180_000, sub { $self->{to_comm}->enqueue(['nodes'])});
+
     if (length $self->{log}) {
         if (open my $from, '<:encoding(UTF-8)', $self->{log}) {
             my $pos = 0;
