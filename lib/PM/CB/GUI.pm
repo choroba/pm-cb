@@ -39,7 +39,7 @@ sub gui {
     my ($self) = @_;
 
     my $tzoffset = Time::Piece::localtime()->tzoffset;
-    $self->{last_date} = q();
+    $self->{last_date} = "";
 
     require Tk;
 
@@ -327,7 +327,7 @@ sub show_options {
         )->pack(-side => 'right');
     }
 
-    my $old_pm_url = $self->{pm_url} // q();
+    my $old_pm_url = $self->{pm_url} // "";
     my $old_random = $self->{random_url};
     my $new_random = $old_random;
     my $f = $opt_f->Frame->pack(-fill => 'x');
@@ -738,7 +738,7 @@ sub show_message {
     $timestamp = convert_time($timestamp, $tzoffset)
                  ->strftime('%Y-%m-%d %H:%M:%S');
 
-    substr $timestamp, 0, 11, q() if 0 == index $timestamp, $self->{last_date};
+    substr $timestamp, 0, 11, "" if 0 == index $timestamp, $self->{last_date};
     $self->show($timestamp, $author, $message, $type);
     $self->increment_unread;
 }
