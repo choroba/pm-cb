@@ -170,7 +170,9 @@ sub gui {
     $self->{history_index} = -1;
     $mw->bind('<Alt-comma>',
               sub {
-                  $self->{history_index}--
+                  $self->{history}[ $self->{history_index} ] = $write->Contents
+                      if length $write->Contents;
+                  --$self->{history_index}
                       unless $self->{history_index} <= -@{ $self->{history} };
                   $write->Contents(
                       $self->{history}[ $self->{history_index} ]
@@ -178,11 +180,19 @@ sub gui {
               });
     $mw->bind('<Alt-period>',
               sub {
-                  $self->{history_index}++
-                      unless $self->{history_index} == -1;
+                  $self->{history}[ $self->{history_index} ] = $write->Contents
+                      if length $write->Contents;
+                  if ($self->{history_index} == -1) {
+                      if (length $write->Contents) {
+                          push @{ $self->{history} }, "";
+                          shift @{ $self->{history} }
+                              if HISTORY_SIZE < @{ $self->{history} };
+                      }
+                  } else {
+                      ++$self->{history_index};
+                  }
                   $write->Contents(
-                      $self->{history}[ $self->{history_index} ]
-                  );
+                      $self->{history}[ $self->{history_index} ]);
               });
 
     $mw->repeat(1000, sub {
@@ -264,11 +274,14 @@ sub gui {
 sub send {
     my ($self) = @_;
     my $write = $self->{write};
+    return unless length $write->Contents;
+
     $self->{to_comm}->enqueue([ send => $write->Contents ]);
-    splice @{ $self->{history} }, -1, 0, $write->Contents;
+    pop @{ $self->{history} } unless length $self->{history}[-1];
+    push @{ $self->{history} }, $write->Contents, "";
     shift @{ $self->{history} } if HISTORY_SIZE < @{ $self->{history} };
     $self->{history_index} = -1;
-    $write->Contents(q());
+    $write->Contents("");
 }
 
 
