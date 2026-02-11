@@ -168,6 +168,10 @@ sub handle_url {
             $dom = 'XML::LibXML'->load_xml(string => $self->mech_content);
         } or return;
 
+        # Not logged in yet.
+        return if 'Anonymous Monk'
+            eq $dom->findvalue('/NEWESTNODES/INFO/@foruser');
+
         my @nodes = $dom->findnodes(
                     '/NEWESTNODES/NODE[@nodetype!="user"]');
         if (@nodes) {
