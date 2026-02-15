@@ -22,6 +22,7 @@ use constant {
     MONKLIST         => 15851,
     SHORTCUT         => 11136513,
     RANDOM_SHORT     => 3193,
+    NEW_NODES        => 30175,
 };
 
 
@@ -46,20 +47,23 @@ sub communicate {
     my ($from_id, $previous, %seen);
 
     my $last_update = -1;
-    my ($message, $command);
+    my $message;
     my %dispatch = (
-        login     => sub { $self->login(@$message)
-                           or $self->{to_gui}->enqueue(['login']) },
-        send      => sub { $message->[0] =~ tr/\x00-\x20/ /s;
-                           $self->send_message($message->[0]) },
-        title     => sub { $self->get_title(@$message) },
-        shortcut  => sub { $self->get_shortcut(@$message) },
-        deletemsg => sub { $self->delete_msg(@$message) },
-        url       => sub { $self->handle_url(@$message) },
-        list      => sub { $self->get_monklist },
-        quit      => sub { no warnings 'exiting'; last },
+        login      => sub { $self->login(@$message)
+                            or $self->{to_gui}->enqueue(['login']) },
+        send       => sub { $message->[0] =~ tr/\x00-\x20/ /s;
+                            $self->send_message($message->[0]) },
+        title      => sub { $self->get_title(@$message) },
+        shortcut   => sub { $self->get_shortcut(@$message) },
+        deletemsg  => sub { $self->delete_msg(@$message) },
+        url        => sub { $self->handle_url(@$message) },
+        list       => sub { $self->get_monklist },
+        nodes      => sub { $self->check_new_nodes },
+        quit       => sub { no warnings 'exiting'; last },
     );
 
+    my ($from_id, $previous, $command, %seen);
+    my $last_update = -1;
     while (1) {
         if ($message = $self->{from_gui}->dequeue_nb) {
             $command = shift @$message;
@@ -148,6 +152,34 @@ sub handle_url {
         $self->{to_gui}->enqueue(['send_login']);
     } else {
         $self->{to_gui}->enqueue(['url', $self->{pm_url}]);
+    }
+}
+
+
+{   my %nodes;
+    sub check_new_nodes {
+        my ($self) = @_;
+        my $response;
+        eval {
+            $response = $self->{mech}->get($self->url . NEW_NODES . ';days=3');
+        };
+        return if ! $response || $response->is_error;
+
+        my $dom;
+        eval {
+            $dom = 'XML::LibXML'->load_xml(string => $self->mech_content);
+        } or return;
+
+        my @nodes = $dom->findnodes(
+                    '/NEWESTNODES/NODE[@nodetype!="user"]');
+        if (@nodes) {
+            $self->{to_gui}->enqueue(
+                [private => '<pm-cb-g>', undef,
+                            "New node: [id://$_->{node_id}|"
+                            . $_->textContent =~ s/\n//r . ']'], NOT_DELETABLE)
+                for grep ! exists $nodes{ $_->{node_id} }, @nodes;
+            @nodes{ map $_->{node_id}, @nodes} = ();
+        }
     }
 }
 

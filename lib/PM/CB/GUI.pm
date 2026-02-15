@@ -248,6 +248,9 @@ sub gui {
         }
     });
 
+    $mw->after(10_000, sub { $self->{to_comm}->enqueue(['nodes'])});
+    $mw->repeat(180_000, sub { $self->{to_comm}->enqueue(['nodes'])});
+
     if (my $hf = $self->{history_file}) {
 	$hf =~ s/~/$ENV{HOME}/;
 	if (open my $fh, '<:encoding(utf-8)', $hf) {
