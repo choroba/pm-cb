@@ -15,14 +15,14 @@ use PM::CB::Control;
 my ($bg_color, $fg_color, $author_color, $private_color, $gesture_color,
     $time_color, $font_name, $char_size, $stack_size, $seen_color, $warn_color,
     $no_time, $help, $pm_url, $browse_url, $random_url, $copy_link,
-    $mce, $geometry, $log, $paste_keys, $browser);
+    $mce, $geometry, $log, $paste_keys, $browser, $new_nodes);
 
 BEGIN {
     ($bg_color, $fg_color, $author_color, $private_color, $gesture_color,
      $time_color, $seen_color, $warn_color, $font_name, $char_size, $stack_size,
-     $no_time, $help, $pm_url, $random_url, $copy_link)
+     $no_time, $help, $pm_url, $random_url, $copy_link, $new_nodes)
     = qw( white black blue magenta darkgreen darkcyan darkgray red Helvetica
-          12 15 0 0 www.perlmonks.org 0 Control-Button-1 red);
+          12 15 0 0 www.perlmonks.org 0 Control-Button-1 1 );
 
     $paste_keys = 'Shift-Insert';
     $paste_keys .= ' XF86Paste' if $^O ne 'MSWin32';
@@ -42,6 +42,7 @@ BEGIN {
         'm|mce_hobo'        => \$mce->{hobo},
         'M|mce_child'       => \$mce->{child},
         'n|no_time'         => \$no_time,
+        'N|new_nodes!'      => \$new_nodes,
         'p|private_color=s' => \$private_color,
         'P|paste_keys=s'    => \$paste_keys,
         'r|random_url'      => \$random_url,
@@ -118,6 +119,7 @@ my $gui = 'PM::CB::GUI'->new({
     log           => $log,
     copy_link     => $copy_link,
     paste_keys    => $paste_keys,
+    new_nodes     => $new_nodes,
     icon_path     => $FindBin::Bin});
 
 $gui->gui;
@@ -139,7 +141,7 @@ pm-cb-g - A GUI client to PerlMonks' Chatter Box
   pm-cb-g -a blue -b white -c 12 -f black -F Helvetica
           -p magenta -s 15 -S darkgray -t darkcyan -g darkgreen
           -u www.perlmonks.org -U www.perlmonks.org
-          -C Control-Button-1 -l "" -B firefox
+          -C Control-Button-1 -l "" -B firefox -N
           [ -h -m/-M -n ]
 
 =head1 OPTIONS
@@ -247,6 +249,11 @@ B<url> if not specified.
 =item B<w|warn_color> I<color>
 
 The color that indicates a too long message.
+
+=item B<N|new_nodes>
+
+This option is on by default, it enables checking for new nodes. If you want
+to turn it off, prefix it with C<no> or C<no->.
 
 =back
 
