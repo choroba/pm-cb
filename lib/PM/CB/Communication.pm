@@ -298,6 +298,7 @@ sub send_message {
         return
     }
 
+    $content =~ s{<a href="(\?[^"]+)">(.+?)</a>}{[$1|$2]}g;
     $self->{to_gui}->enqueue(
         [private => '<pm-cb-g>', undef, $content, NOT_DELETABLE]);
 }
