@@ -176,10 +176,16 @@ sub handle_url {
                     '/NEWESTNODES/NODE[@nodetype!="user"]');
         if (@nodes) {
             $self->{to_gui}->enqueue(
-                [private => '<pm-cb-g>', undef,
+                [private => '<pm-cb-g>',
+                            'Time::Piece'->strptime($_->{createtime},
+                                                    '%Y%m%d%H%M%S')
+                                ->strftime('%Y-%m-%d %H:%M:%S'),
                             "New node: [id://$_->{node_id}|"
-                            . $_->textContent =~ s/\n//r . ']', NOT_DELETABLE])
-                for grep ! exists $nodes{ $_->{node_id} }, @nodes;
+                                . $_->textContent =~ s/\n//r
+                                . '] by [id://'
+                                . "$_->{author_user}|$_->{authortitle}]",
+                            NOT_DELETABLE])
+                for grep ! exists $nodes{ $_->{node_id} }, reverse @nodes;
             @nodes{ map $_->{node_id}, @nodes} = ();
         }
     }
