@@ -595,7 +595,9 @@ sub show {
         "<$timestamp> [$author]$author_separator$message\n"
     ) if $self->{log_fh};
 
-    $self->{alert} = 1 if $id || $message =~ /$self->{username}/i;
+    $self->{alert} = 1 if $id
+                       || defined $self->{username}
+                          && $message =~ /$self->{username}/i;
 
     my $fix_length = 0;
     my $start_pos = 0;
