@@ -178,7 +178,7 @@ sub handle_url {
             $self->{to_gui}->enqueue(
                 [private => '<pm-cb-g>', undef,
                             "New node: [id://$_->{node_id}|"
-                            . $_->textContent =~ s/\n//r . ']'], NOT_DELETABLE)
+                            . $_->textContent =~ s/\n//r . ']', NOT_DELETABLE])
                 for grep ! exists $nodes{ $_->{node_id} }, @nodes;
             @nodes{ map $_->{node_id}, @nodes} = ();
         }
