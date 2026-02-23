@@ -248,8 +248,10 @@ sub gui {
         }
     });
 
-    $mw->after(10_000, sub { $self->{to_comm}->enqueue(['nodes'])});
-    $mw->repeat(180_000, sub { $self->{to_comm}->enqueue(['nodes'])});
+    if ($self->{new_nodes}) {
+	$mw->after(10_000, sub { $self->{to_comm}->enqueue(['nodes'])});
+	$mw->repeat(180_000, sub { $self->{to_comm}->enqueue(['nodes'])});
+    }
 
     if (my $hf = $self->{history_file}) {
 	$hf =~ s/~/$ENV{HOME}/;
@@ -597,7 +599,9 @@ sub show {
     my $lh = $self->{log_fh};
     $lh and $lh->printflush(join "\x{2063}" => $timestamp, $s_author, $message =~ s/\n*\z/\n\x{2028}/r);
 
-    $self->{alert} = 1 if $id || $message =~ /$self->{username}/i;
+    $self->{alert} = 1 if $id
+		       || (defined $self->{username}
+			   && $message =~ /$self->{username}/i);
 
     my $fix_length = 0;
     my $start_pos = 0;

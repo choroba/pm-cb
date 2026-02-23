@@ -44,9 +44,6 @@ sub communicate {
             autocheck => 0,
             ssl_opts => $self->ssl_opts);
 
-    my ($from_id, $previous, %seen);
-
-    my $last_update = -1;
     my $message;
     my %dispatch = (
         login      => sub { $self->login(@$message)
@@ -177,12 +174,18 @@ sub handle_url {
         my @nodes = $dom->findnodes(
                     '/NEWESTNODES/NODE[@nodetype!="user"]');
         if (@nodes) {
-            $self->{to_gui}->enqueue(
-                [private => '<pm-cb-g>', undef,
-                            "New node: [id://$_->{node_id}|"
-                            . $_->textContent =~ s/\n//r . ']'], NOT_DELETABLE)
-                for grep ! exists $nodes{ $_->{node_id} }, @nodes;
-            @nodes{ map $_->{node_id}, @nodes} = ();
+	    $self->{to_gui}->enqueue(
+		[private => '<pm-cb-g>',
+			    'Time::Piece'->strptime($_->{createtime},
+						    '%Y%m%d%H%M%S')
+				->strftime('%Y-%m-%d %H:%M:%S'),
+			    "New node: [id://$_->{node_id}|"
+				. $_->textContent =~ s/\n//r
+				. '] by [id://'
+				. "$_->{author_user}|$_->{authortitle}]",
+			    NOT_DELETABLE])
+		for grep ! exists $nodes{ $_->{node_id} }, reverse @nodes;
+	    @nodes{ map $_->{node_id}, @nodes} = ();
         }
     }
 }
@@ -300,6 +303,7 @@ sub send_message {
         return
     }
 
+    $content =~ s{<a href="(\?[^""]+)">(.+?)</a>}{[$1|$2]}g;
     $self->{to_gui}->enqueue(
         [private => '<pm-cb-g>', undef, $content, NOT_DELETABLE]);
 }
