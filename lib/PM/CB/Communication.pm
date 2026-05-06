@@ -9,6 +9,7 @@ use Time::HiRes;
 use WWW::Mechanize;
 use XML::LibXML;
 use PM::CB::Common qw{ to_entities };
+use Time::Piece;
 
 use constant {
     FREQ             => 10,
