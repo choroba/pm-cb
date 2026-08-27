@@ -9,7 +9,6 @@ use Time::HiRes;
 use WWW::Mechanize;
 use XML::LibXML;
 use PM::CB::Common qw{ to_entities };
-use Time::Piece;
 
 use constant {
     FREQ             => 10,
@@ -39,6 +38,7 @@ sub url { "https://$_[0]{pm_url}/bare/index.pl?node_id=" }
 
 sub communicate {
     my ($self) = @_;
+    require DateTime;
 
     my $mech = $self->{mech}
         = 'WWW::Mechanize'->new(
@@ -176,17 +176,25 @@ sub handle_url {
         my @nodes = $dom->findnodes(
                     '/NEWESTNODES/NODE[@nodetype!="user"]');
         if (@nodes) {
-            $self->{to_gui}->enqueue(
-                [private => '<pm-cb-g>',
-                            'Time::Piece'->strptime($_->{createtime},
-                                                    '%Y%m%d%H%M%S')
-                                ->strftime('%Y-%m-%d %H:%M:%S'),
+            for my $node (grep ! exists $nodes{ $_->{node_id} },
+                               reverse @nodes
+            ) {
+                my ($year, $month, $day, $hour, $minute, $second)
+                    = $node->{createtime} =~ /^(....)(..)(..)(..)(..)(..)$/;
+                $self->{to_gui}->enqueue(
+                    [private => '<pm-cb-g>',
+                            'DateTime'->new(year   => $year,
+                                            month  => $month,
+                                            day    => $day,
+                                            hour   => $hour,
+                                            minute => $minute,
+                                            second => $second) =~ s/T/ /r,
                             "New node: [id://$_->{node_id}|"
                                 . $_->textContent =~ s/\n//r
                                 . '] by [id://'
                                 . "$_->{author_user}|$_->{authortitle}]",
-                            NOT_DELETABLE])
-                for grep ! exists $nodes{ $_->{node_id} }, reverse @nodes;
+                            NOT_DELETABLE]);
+            }
             @nodes{ map $_->{node_id}, @nodes} = ();
         }
     }

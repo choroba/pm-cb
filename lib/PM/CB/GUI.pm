@@ -5,7 +5,6 @@ use strict;
 use Syntax::Construct qw{ // };
 
 use charnames ();
-use Time::Piece;
 use List::Util qw{ shuffle };
 use PM::CB::Common qw{ to_entities };
 
@@ -38,7 +37,9 @@ sub url {
 sub gui {
     my ($self) = @_;
 
-    my $tzoffset = Time::Piece::localtime()->tzoffset;
+    require DateTime;
+    $self->{tzname} = 'DateTime::TimeZone'->new(name => 'local');
+    $self->{tzserver} = 'DateTime::TimeZone'->new(name => 'America/New_York');
     $self->{last_date} = "";
 
     require Tk;
@@ -198,11 +199,10 @@ sub gui {
     $mw->repeat(1000, sub {
         my $msg;
         my %dispatch = (
-            time       => sub { $self->update_time($msg->[0], $tzoffset,
-                                                   $msg->[1]) },
+            time       => sub { $self->update_time($msg->[0], $msg->[1]) },
             login      => sub { $self->login_dialog },
-            chat       => sub { $self->show_message($tzoffset, @$msg) },
-            private    => sub { $self->show_private(@$msg, $tzoffset) },
+            chat       => sub { $self->show_message(@$msg) },
+            private    => sub { $self->show_private(@$msg) },
             delete     => sub { $self->deleted(@$msg) },
             title      => sub { $self->show_title(@$msg) },
             shortcut   => sub { $self->show_shortcut(@$msg) },
@@ -738,56 +738,59 @@ sub browse {
 
 
 sub show_message {
-    my ($self, $tzoffset, $timestamp, $author, $message) = @_;
+    my ($self, $timestamp, $author, $message) = @_;
 
     my $type = $message =~ s{^/me(?=\s|')}{} ? GESTURE : PUBLIC;
     $message = decode($message);
-    $timestamp = convert_time($timestamp, $tzoffset)
-                 ->strftime('%Y-%m-%d %H:%M:%S');
+    $timestamp = $self->convert_time($timestamp);
 
+    # Show date only if different.
     substr $timestamp, 0, 11, "" if 0 == index $timestamp, $self->{last_date};
+    $timestamp =~ s/T/ /;
     $self->show($timestamp, $author, $message, $type);
     $self->increment_unread;
 }
 
 
 sub show_private {
-    my ($self, $author, $time, $msg, $id, $tzoffset) = @_;
+    my ($self, $author, $time, $msg, $id) = @_;
     $msg = decode($msg);
     $msg =~ s/[\n\r]//g;
 
-    if (defined $time) {
-        local $ENV{TZ} = 'America/New_York';
-        my $est = Time::Piece::localtime()->tzoffset;
-        $time = 'Time::Piece'->strptime($time, '%Y-%m-%d %H:%M:%S')
-              - $est + $tzoffset;
-    } else {
-        $time = Time::Piece::localtime();
-    }
-    $time = $time->strftime('%Y-%m-%d %H:%M:%S');
-
+    $time = defined $time
+          ? $self->convert_time($time, $self->{tzserver})
+          : 'DateTime'->now->set_timezone($self->{tzname}) =~ s/T/ /r;
     $self->show($time, $author, $msg, PRIVATE, $id);
     $self->increment_unread if $id;
 }
 
 
 sub convert_time {
-    my ($server_time, $tzoffset) = @_;
-    my $local_time = 'Time::Piece'->strptime(
-        $server_time, '%Y-%m-%d %H:%M:%S'
-    ) + $tzoffset;  # Assumption: Server time is in UTC.
-    return $local_time
+    my ($self, $server_time, $tz) = @_;
+    $tz //= 'UTC';  # Assumption: Server time is in UTC.
+    my ($year, $month, $day, $hour, $minute, $second)
+        = $server_time =~ /(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/
+        or warn("PMCBG: Invalid server time: $server_time.\n"), return;
+
+    my $dt = 'DateTime'->new(year      => $year,
+                             month     => $month,
+                             day       => $day,
+                             hour      => $hour,
+                             minute    => $minute,
+                             second    => $second,
+                             time_zone => $tz);
+    $dt->set_time_zone($self->{tzname});
+    return $dt =~ s/T/ /r
 }
 
 
 sub update_time {
-    my ($self, $server_time, $tzoffset, $should_update) = @_;
-    my $local_time = convert_time($server_time, $tzoffset);
+    my ($self, $server_time, $should_update) = @_;
+    my $local_time = $self->convert_time($server_time);
     $self->{last_update}->configure(
-        -text => 'Last update: '
-                 . $local_time->strftime('%Y-%m-%d %H:%M:%S'),
+        -text => 'Last update: ' . $local_time,
         -foreground => 'black');
-    $self->{last_date} = $local_time->strftime('%Y-%m-%d') if $should_update;
+    $self->{last_date} = substr $local_time, 0, 10 if $should_update;
 }
 
 

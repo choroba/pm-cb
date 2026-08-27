@@ -16,7 +16,7 @@ requires 'FindBin';
 requires 'Getopt::Long';
 requires 'Pod::Usage';
 requires 'Time::HiRes';
-requires 'Time::Piece';
+requires 'DateTime';
 requires 'charnames';
 
 requires 'List::Util';
