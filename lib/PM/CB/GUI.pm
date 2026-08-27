@@ -209,7 +209,7 @@ sub gui {
             send_login => sub { $self->send_login },
             url        => sub { $self->{pm_url} = $msg->[0] },
             list       => sub { $self->show_list(@$msg) },
-            quit       => sub { $self->{control_t}->join; Tk::exit() },
+            quit       => sub { $mw->destroy },
 
         );
         while ($msg = $self->{from_comm}->dequeue_nb) {

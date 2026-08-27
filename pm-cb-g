@@ -22,7 +22,7 @@ BEGIN {
      $time_color, $seen_color, $warn_color, $font_name, $char_size, $stack_size,
      $no_time, $help, $pm_url, $random_url, $copy_link, $new_nodes)
     = qw( white black blue magenta darkgreen darkcyan darkgray red Helvetica
-          12 15 0 0 www.perlmonks.org 0 Control-Button-1 1 );
+          12 18 0 0 www.perlmonks.org 0 Control-Button-1 1 );
 
     $paste_keys = 'Shift-Insert';
     $paste_keys .= ' XF86Paste' if $^O ne 'MSWin32';
@@ -94,7 +94,7 @@ my $control_t = $worker_class->create(sub {
     $control->start_comm;
 });
 
-my $gui = 'PM::CB::GUI'->new({
+my $gui = $worker_class->create(sub {'PM::CB::GUI'->new({
     bg_color      => $bg_color,
     fg_color      => $fg_color,
     author_color  => $author_color,
@@ -120,10 +120,10 @@ my $gui = 'PM::CB::GUI'->new({
     copy_link     => $copy_link,
     paste_keys    => $paste_keys,
     new_nodes     => $new_nodes,
-    icon_path     => $FindBin::Bin});
+    icon_path     => $FindBin::Bin})->gui });
 
-$gui->gui;
-
+$gui->join;
+$control_t->join;
 
 # MCE::Channel can only enqueue, it has no insert method.
 sub MCE::Channel::insert {
