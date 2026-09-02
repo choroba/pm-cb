@@ -6,7 +6,7 @@ use Syntax::Construct qw{ // };
 
 use charnames ();
 use List::Util qw{ shuffle };
-use PM::CB::Common qw{ to_entities };
+use PM::CB::Common qw{ to_entities tswarn };
 
 use constant {
     TITLE           => 'PM::CB::G',
@@ -226,22 +226,22 @@ sub gui {
     $mw->repeat(10_000, sub {
         # Ask just one not to overload the server.
         if (my $id = (shuffle(keys %{ $self->{ids} }))[0]) {
-            warn "PMCB: Reasking id $id";
+            tswarn("Reasking id $id");
             $self->ask_title($id, $self->{ids}{$id}{name});
             if (++$self->{ids}{$id}{count} > REASK_THRESHOLD) {
-                warn "PMCB: Asked 10 times for $id ($self->{ids}{$id}{name})";
+                tswarn("Asked 10 times for $id ($self->{ids}{$id}{name})");
                 $self->show_title(
                     $id, $self->{ids}{$id}{name}, $self->{ids}{$id}{name});
             }
         }
 
         if (my $shortcut = (shuffle(keys %{ $self->{shortcuts} }))[0]) {
-            warn "PMCB: Reasking shortcut $shortcut";
+            tswarn("Reasking shortcut $shortcut");
             $self->ask_shortcut($shortcut,
                                 $self->{shortcuts}{$shortcut}{title});
             if (++$self->{shortcuts}{$shortcut}{count} > REASK_THRESHOLD) {
-                warn "PMCB: Asked 10 times for $shortcut "
-                    . "($self->{shortcuts}{$shortcut}{title})";
+                tswarn("Asked 10 times for $shortcut "
+                    . "($self->{shortcuts}{$shortcut}{title})");
                 $self->show_shortcut(
                     $shortcut, $self->{shortcuts}{$shortcut}{title},
                     $self->{shortcuts}{$shortcut}{title});

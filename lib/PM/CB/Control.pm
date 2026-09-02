@@ -3,8 +3,8 @@ package PM::CB::Control;
 use warnings;
 use strict;
 
+use PM::CB::Common qw{ tswarn };
 use PM::CB::Communication;
-
 
 sub new {
     my ($class, $struct) = @_;
@@ -57,7 +57,7 @@ sub heartbeat {
     my ($self) = @_;
 
     unless ($self->{communicate_t}->is_running) {
-        warn "PMCB: Restarting worker...\n";
+        tswarn("Restarting worker...");
         eval { $self->{communicate_t}->join };
         $self->start_comm;
         $self->{to_gui}->enqueue(['send_login']);

@@ -8,7 +8,7 @@ use Encode;
 use Time::HiRes;
 use WWW::Mechanize;
 use XML::LibXML;
-use PM::CB::Common qw{ to_entities };
+use PM::CB::Common qw{ to_entities tswarn };
 
 use constant {
     FREQ             => 10,
@@ -105,7 +105,7 @@ sub communicate {
 
                 $previous = $xml;
             } else {
-                warn "PMCB: $@";
+                tswarn($@);
             }
         }
 
@@ -130,7 +130,7 @@ sub get_monklist {
             $self->get_monklist($repeat + 1);
 
         } else {
-            warn "PMCB: Can't get monklist.\n";
+            tswarn("Can't get monklist.");
         }
         return
     }
