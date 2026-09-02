@@ -759,7 +759,7 @@ sub show_private {
 
     $time = defined $time
           ? $self->convert_time($time, $self->{tzserver})
-          : 'DateTime'->now->set_timezone($self->{tzname}) =~ s/T/ /r;
+          : 'DateTime'->now->set_time_zone($self->{tzname}) =~ s/T/ /r;
     $self->show($time, $author, $msg, PRIVATE, $id);
     $self->increment_unread if $id;
 }
