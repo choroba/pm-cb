@@ -770,7 +770,7 @@ sub convert_time {
     $tz //= 'UTC';  # Assumption: Server time is in UTC.
     my ($year, $month, $day, $hour, $minute, $second)
         = $server_time =~ /(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/
-        or warn("PMCBG: Invalid server time: $server_time.\n"), return;
+        or tswarn("Invalid server time: $server_time.\n"), return;
 
     my $dt = 'DateTime'->new(year      => $year,
                              month     => $month,
