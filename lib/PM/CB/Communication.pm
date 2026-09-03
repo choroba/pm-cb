@@ -105,7 +105,11 @@ sub communicate {
 
                 $previous = $xml;
             } else {
-                tswarn($@);
+                my $exception = $@;
+                tswarn("GET failed: $exception");
+                $self->{to_gui}->enqueue(['send_login'])
+                    if $exception
+                    =~ /Specification mandates value for attribute crossorigin/;
             }
         }
 
