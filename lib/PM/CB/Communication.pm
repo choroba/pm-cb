@@ -189,10 +189,10 @@ sub handle_url {
                                             hour   => $hour,
                                             minute => $minute,
                                             second => $second) =~ s/T/ /r,
-                            "New node: [id://$_->{node_id}|"
-                                . $_->textContent =~ s/\n//r
+                            "New node: [id://$node->{node_id}|"
+                                . $node->textContent =~ s/\n//r
                                 . '] by [id://'
-                                . "$_->{author_user}|$_->{authortitle}]",
+                                . "$node->{author_user}|$node->{authortitle}]",
                             NOT_DELETABLE]);
             }
             @nodes{ map $_->{node_id}, @nodes} = ();
