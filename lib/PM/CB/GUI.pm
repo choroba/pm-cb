@@ -797,6 +797,8 @@ sub update_time {
 {   my ($login, $password);
     sub send_login {
         my ($self) = @_;
+        return unless defined $login;
+
         $self->{username} = $login;
         $self->{to_comm}->enqueue([ 'login', $login, $password ]);
     }
